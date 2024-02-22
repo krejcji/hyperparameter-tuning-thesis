@@ -1,0 +1,42 @@
+
+\chapwithtoc{Introduction}
+
+% Introduction should answer the following questions, ideally in this order
+
+% What is the nature of the problem the thesis is addressing?
+In this thesis, we are addressing the problem of hyperparameter tuning of deep neural networks. The most common way to tune hyperparameters still to this day is by hand, by trial and error, relying on previous experience and various rules of thumb. It is very time-consuming for people and requires a great deal of expertise to do efficiently and well.
+With the steady increase in computing power, it is preferable to offload this task to computers. The right algorithm can do the task more thoroughly and without much human effort.
+
+Even though this is an extensively studied problem, there still is no consensus on which method performs best. In this thesis, we want to expand on the knowledge of these algorithms and conduct experiments in the healthcare domain.
+
+The main issue is that the function we optimize is expensive to evaluate and the range of possible input values is vast. One function evaluation, or training the network, can take hours or days. That is why the classical methods for hyperparameter optimization in machine learning such as grid search are not applicable to more complex deep learning architectures. Therefore, more sophisticated methods and algorithms were developed and are still being researched. The most important metric in this field is the efficiency of the search.
+
+% What is the common approach for solving that problem now?
+Hyperparameter optimization has roots in black-box optimization techniques. The machine learning models act as a black-box system to an extent. In deep learning, there is some potential to exploit the knowledge of the system, but only to a small degree. Many tools and optimization frameworks exist for hyperparameter tuning. Most of them are even open source, such as Optuna~\cite{akiba2019optuna} or SMAC3~\cite{smac3}. These tuning tools usually use Bayesian optimization techniques internally. Bayesian optimization is well suited for global optimization of black-box, expensive-to-evaluate functions.
+
+
+% How this thesis approaches the problem?
+\xxx{TODO: Decide on the focus of the thesis}. Below are some options that came to my mind. In this thesis:
+\begin{itemize}
+    \item We survey the literature (has been done recently~\cite{survey2020}\cite{survey2021}) and we compare the HPO methods on some machine learning tasks in the domain of health care *if the data are reasonable.
+    \item We focus on the problem of distribution shift when new training data arrive in the process of developing the network. More specifically, we study how the optimal hyperparameters change when a new batch of data arrives. Notes:
+    \begin{enumerate}
+        \item How do we study this, when datasets are complete? Metadata? Would it be a valid approximation of the real case?
+        \item Do we think the results are going to be interesting? I would suppose that the hyperparameters stay the same or change very slightly.
+    \end{enumerate}
+    \item Focus on low-budget search. Research and experiment with how to best spend a limited budget. May be some search strategy random search + Bayesian optimization, or a multi-fidelity approach. There is a lot of literature on early stopping.
+    \item We focus on transfer learning.
+
+    Note: I'm not sure if it is a viable option anymore. The papers seem to be quite advanced to me and build on deeper knowledge of the HPO methods.
+
+    We are interested in making the best use of previous experiments so that we can efficiently iteratively optimize the model. Also applicable for the training data arriving in batches as we develop the model. Transfer learning in HPO is also an established method. So again, we could compare some methods?
+\end{itemize}
+
+% \item What are the results? Did something improve?
+% \item What can the reader expect in the individual chapters of the thesis?
+% \end{enumerate}
+
+% Expected length of the introduction is between 1--4 pages. Longer introductions may require sub-sectioning with appropriate headings --- use \texttt{\textbackslash{}section*} to avoid numbering (with section names like `Motivation' and `Related work'), but try to avoid lengthy discussion of anything specific. Any ``real science'' (definitions, theorems, methods, data) should go into other chapters.
+% \todo{You may notice that this paragraph briefly shows different ``types'' of `quotes' in TeX, and the usage difference between a hyphen (-), en-dash (--) and em-dash (---).}
+
+% It is very advisable to skim through a book about scientific English writing before starting the thesis. I can recommend `\citetitle{glasman2010science}' by \citet{glasman2010science}.

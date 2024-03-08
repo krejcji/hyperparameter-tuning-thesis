@@ -1,0 +1,60 @@
+# Data Configuration
+experiment: 'optuna_simple_cnn' # For grouping similar runs
+
+metrics: ['macro_auc']
+
+hp_optimizer:
+  name: 'Optuna'
+  n_trials: 40
+  pruning: true
+
+data:
+  name: 'PTB-XL'
+  batch_size: 256
+  shuffle: true
+  input_dim: 12
+  output_dim: 6
+  input_length: 250
+
+tunable_params:
+  - name: 'learning_rate'
+    type: 'float'
+    high: 0.5
+    low: 0.000001
+    log: true
+  - name: 'momentum'
+    type: 'float'
+    high: 0.9999
+    low: 0.001
+    log: true
+
+fixed_params:
+  - name: 'epochs'
+    value: 20
+  - name: 'optimizer'
+    value: 'AdamW'
+  - name: 'loss'
+    value: 'BCEWithLogitsLoss'
+  - name: 'out_activation'
+    value: 'Sigmoid'
+
+# Model Configuration
+model:
+  name: 'CNN' #'xresnet1d'
+  model_dropout: 0.1
+  original_f_number : true
+  fc_dropout: 0.25
+  layers:
+    - type: 'Conv1D'
+      filters: 12
+      kernel_size: 40
+      stride: 3
+    - type: 'Conv1D'
+      filters: 36
+      kernel_size: 5
+      stride: 3
+    - type: 'Flatten'
+    - type: 'Dense'
+      units: 16
+      activation: 'relu'
+    - type: 'Output'

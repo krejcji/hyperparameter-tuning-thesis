@@ -10,7 +10,7 @@ __pycache__/
 logs/
 results/
 data/
-
+wandb/
 # Distribution / packaging
 .Python
 build/
@@ -462,3 +462,5 @@ TSWLatexianTemp*
 
 # xwatermark package
 *.xwm
+src/optimize_net.py
+src/optimize_net.py

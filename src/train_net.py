@@ -11,9 +11,11 @@ import dl_utils
 def train_net(train_loader, val_loader, params, config, trial=None):
     n_epochs = params['epochs']
     batch_size = config['data']['batch_size']
+    input_channels = config['data']['input_dim']
+    input_length = config['data']['input_length']
 
     model = load_model(config)
-    summary(model, input_size=(batch_size, 1, 250))
+    summary(model, input_size=(batch_size, input_channels, input_length))
 
     wandb.watch(model)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

@@ -16,25 +16,13 @@ Hyperparameter optimization has roots in black-box optimization techniques. The 
 
 
 % How this thesis approaches the problem?
-\xxx{TODO: Decide on the focus of the thesis}. Below are some options that came to my mind. In this thesis:
-\begin{itemize}
-    \item We survey the literature (has been done recently~\cite{survey2020}\cite{survey2021}) and we compare the HPO methods on some machine learning tasks in the domain of health care *if the data are reasonable.
-    \item We focus on the problem of distribution shift when new training data arrive in the process of developing the network. More specifically, we study how the optimal hyperparameters change when a new batch of data arrives. Notes:
-    \begin{enumerate}
-        \item How do we study this, when datasets are complete? Metadata? Would it be a valid approximation of the real case?
-        \item Do we think the results are going to be interesting? I would suppose that the hyperparameters stay the same or change very slightly.
-    \end{enumerate}
-    \item Focus on low-budget search. Research and experiment with how to best spend a limited budget. May be some search strategy random search + Bayesian optimization, or a multi-fidelity approach. There is a lot of literature on early stopping.
-    \item We focus on transfer learning.
+In this thesis, we focus on low-budget search. We research the literature on multi-fidelity hyperparameter tuning and experiment with how to best spend a limited budget. We compare the HPO methods on some machine learning tasks in the domain of health care and others.
 
-    Note: I'm not sure if it is a viable option anymore. The papers seem to be quite advanced to me and build on deeper knowledge of the HPO methods.
 
-    We are interested in making the best use of previous experiments so that we can efficiently iteratively optimize the model. Also applicable for the training data arriving in batches as we develop the model. Transfer learning in HPO is also an established method. So again, we could compare some methods?
-\end{itemize}
+% What are the results? Did something improve?
 
-% \item What are the results? Did something improve?
-% \item What can the reader expect in the individual chapters of the thesis?
-% \end{enumerate}
+% What can the reader expect in the individual chapters of the thesis?
+
 
 % Expected length of the introduction is between 1--4 pages. Longer introductions may require sub-sectioning with appropriate headings --- use \texttt{\textbackslash{}section*} to avoid numbering (with section names like `Motivation' and `Related work'), but try to avoid lengthy discussion of anything specific. Any ``real science'' (definitions, theorems, methods, data) should go into other chapters.
 % \todo{You may notice that this paragraph briefly shows different ``types'' of `quotes' in TeX, and the usage difference between a hyphen (-), en-dash (--) and em-dash (---).}

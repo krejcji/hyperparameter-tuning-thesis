@@ -1,0 +1,16 @@
+\chapter{Related literature}
+\xxx{Things that are not directly relevant, but related to HPO. Might not include this chapter in the final version.}
+In this chapter, we mention other approaches in the literature that we did not use directly for solving the problem, but we think might be interesting for some readers.
+
+\section{Transfer learning}
+
+One advantage that an experienced practitioner will have over a classical HPO algorithm is that he will be good at generalizing and estimating good hyperparameter configurations across similar learning problems. The algorithm either depends on good bounds given by a user for efficient search, or it has to try a lot of configurations that do not perform well at all to find the bounds itself. The main idea of transfer learning is to use the experience from previous trials and similar problems in a new trial. This target function estimate should guide the search until the model is refined by new trials.
+
+Collaborative hyperparameter tuning~\cite{bardenet2013collaborative}.
+
+Efficient transfer learning method for automatic hyperparameter tuning~\cite{yogatama2014efficient}.
+
+Scalable hyperparameter transfer learning~\cite{perrone2018scalable}.
+
+Pre-trained Gaussian processes for Bayesian optimization~\cite{wang2021pre}.
+

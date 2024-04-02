@@ -192,7 +192,7 @@ def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=
     )
 
     # TODO : Calculate fevals based on budget
-    dehb.run(fevals=3*budget/max_epochs, verbose=True, save_intermediate=True)
+    dehb.run(fevals=3*budget/max_epochs, verbose=True)
 
 def parse_fixed_params(config):
     params = dict()

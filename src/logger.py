@@ -47,7 +47,7 @@ class Logger:
              return False
 
     def init_run(self, model, id, params):
-        if self.trial + 1 >= self.budget or self._time_exceeded():
+        if self.trial + 1 > self.budget or self._time_exceeded():
             raise BudgetExceededException()
 
         self.curr_id = id

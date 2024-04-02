@@ -11,6 +11,10 @@ logs/
 results/
 data/
 wandb/
+hpo4dl_results/
+outputs/
+smac3_output/
+
 # Distribution / packaging
 .Python
 build/

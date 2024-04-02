@@ -1,8 +1,8 @@
 """
 Load the model to be used for training based on the configuration file.
 """
-
-def load_model(config):
+# TODO: Deal with params
+def load_model(config, params = None):
     if config['model']['name'] == 'xresnet1d':
         from xResnet1d import xresnet1d
 
@@ -15,8 +15,13 @@ def load_model(config):
                         fc_drop=fc_dropout)
     elif config['model']['name'] == 'CNN':
         from cnn_net.cnn import CNNNet
-
         model = CNNNet(config)
+    elif config['model']['name'] == 'CNN_2D':
+        from cnn_net.cnn_2d import CNN2DNet
+        model = CNN2DNet(config)
+    elif config['model']['name'] == 'CNN_2D_simple':
+        from cnn_net.cnn_2d_simple import CNN2DSimpleNet
+        model = CNN2DSimpleNet(config, params)
     else:
         raise ValueError(f"Unknown model: {config['model']['name']}")
 

@@ -9,6 +9,7 @@ import yaml
 from dehb import DEHB
 from smac import HyperparameterOptimizationFacade, MultiFidelityFacade, Scenario
 from smac.intensifier.hyperband import Hyperband
+from smac import Callback
 from ConfigSpace import ConfigurationSpace, Float, Integer, Categorical
 
 from load_data import load_data
@@ -16,7 +17,7 @@ from train_net import train_net
 from logger import Logger
 from logger import BudgetExceededException
 
-EXP_NAME = "mnist_simple" # Default experiment name if not provided in command line
+EXP_NAME = "smac" # Default experiment name if not provided in command line
 
 # Implemented optimizers - Optuna (+RS, HB), SMAC (+BOHB), DEHB
 
@@ -87,7 +88,20 @@ def objective_smac(config, seed: int=0, trainloader=None, valloader=None, config
 
     return loss
 
-def optimize_smac(config, trainloader, valloader, logger, budget = None):
+class SMACBudgetCallback(Callback):
+    def __init__(self, budget):
+        self.used_budget = 0
+        self.max_budget = budget
+
+    def on_tell_end(self, smbo, info, value):
+        self.used_budget += int(info.budget)
+        print(f"Callback: Used budget: {self.used_budget} out of {self.max_budget}")
+
+        if self.used_budget > self.max_budget:
+            print("Callback: Budget exceeded")
+            return False
+
+def optimize_smac(config, trainloader, valloader, logger, walltime=None, budget = None):
     configspace = ConfigurationSpace()
     for param in config['tunable_params']:
         name = param['name']
@@ -101,7 +115,7 @@ def optimize_smac(config, trainloader, valloader, logger, budget = None):
             raise ValueError(f"Unknown parameter type: {param['type']}")
         configspace.add_hyperparameter(hp)
 
-    scenario = Scenario(configspace, n_trials=config['hp_optimizer']['budget'])
+    scenario = Scenario(configspace, n_trials=config['hp_optimizer']['budget'], walltime_limit=walltime)
 
     smac = HyperparameterOptimizationFacade(
         scenario,
@@ -109,7 +123,7 @@ def optimize_smac(config, trainloader, valloader, logger, budget = None):
         overwrite=True,)
     incumbent = smac.optimize()
 
-def optimize_smac_multifidelity(config, trainloader, valloader, logger, max_budget=15):
+def optimize_smac_multifidelity(config, trainloader, valloader, logger, walltime, max_trial_budget=15, opt_budget=None):
     configspace = ConfigurationSpace()
     for param in config['tunable_params']:
         name = param['name']
@@ -124,10 +138,10 @@ def optimize_smac_multifidelity(config, trainloader, valloader, logger, max_budg
         configspace.add_hyperparameter(hp)
 
     scenario = Scenario(configspace,
-                        walltime_limit=config['wall_time'] * 60,
+                        walltime_limit=walltime,
                         n_trials=1000,  # Sufficiently high number not to activate
                         min_budget=1,   # TODO: Define in config
-                        max_budget=max_budget,
+                        max_budget=max_trial_budget,
                         n_workers=1)
 
     # initial_design = MFFacade.get_initial_design(scenario, n_configs=5)
@@ -140,6 +154,7 @@ def optimize_smac_multifidelity(config, trainloader, valloader, logger, max_budg
         scenario,
         obj_function,
         intensifier=intensifier,
+        callbacks=[SMACBudgetCallback(opt_budget)],
         overwrite=True,)
 
     incumbent = smac.optimize()
@@ -223,15 +238,16 @@ if __name__ == '__main__':
         params = parse_fixed_params(config)
         budget = config['hp_optimizer']['budget'] * params['epochs']
         logger = Logger(config, wandb=False, dir=logging_dir,budget=budget, start_time=walltime, max_time=max_time)
+        time_left = max_time - (time.time() - walltime)
 
         try:
             # Branch on the optimizer (supported - Optuna, SMAC, DEHB)
             if config['hp_optimizer']['name'] == 'Optuna':
                 optimize_optuna(config, trainloader, valloader, logger, repeat=repeat)
             elif config['hp_optimizer']['name'] == 'SMAC':
-                optimize_smac(config, trainloader, valloader, logger)
+                optimize_smac(config, trainloader, valloader, logger, time_left, budget=budget)
             elif config['hp_optimizer']['name'] == 'SMAC_Multifidelity':
-                optimize_smac_multifidelity(config, trainloader, valloader, logger, params['epochs'])
+                optimize_smac_multifidelity(config, trainloader, valloader, logger, time_left, params['epochs'], opt_budget=budget)
             elif config['hp_optimizer']['name'] == 'DEHB':
                 optimize_dehb(config, trainloader, valloader, logger, max_epochs=params['epochs'], budget=budget)
             elif config['hp_optimizer']['name'] == 'RandomSearch':

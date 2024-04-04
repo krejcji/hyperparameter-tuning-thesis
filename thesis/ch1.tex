@@ -69,30 +69,72 @@ Before we get to algorithmic approaches, let us consider manual hyperparameter t
 
 
 \section{Bayesian optimization}
+% Going from model-less to model-based approaches
 So far, we have seen model-less approaches, where each trial is independent. This approach offers some advantages, like parallelization and simplicity of implementation, but it is quite inefficient. Information obtained from previous trials is not used in any way to guide the search. Bayesian optimization methods build and use an internal model of the learning algorithm's generalization performance. Bayesian optimization is widely covered in literature, we will use the work of Brochu et al.~\cite{brochu2010tutorial} and Frazier~\cite{frazier2018tutorial} for the definitions and description of the method.
 
-The basic loop of a Bayesian optimization algorithm is simple. It uses the internal model to get a suggestion of the next hyperparameter configuration to try. Then it trains the neural network using the suggested configuration and uses the resulting performance metric to update the model. We repeat this process until we run out of budget or the neural network performs well enough. % Maybe add an Algorithm as in the paper?
+% What is BO and history
+% Before mockus was Kushner 1964 and Zilinkas 1975 - 2nd page of Frazier 2018
+In general, Bayesian optimization is a class of optimization methods focused on optimizing a real-valued objective function \[ \max_{x\in A} f(x). \] The method got its name from the Bayes' theorem, which is applied by stating that the posterior probability of a model M given observations E is proportional to the likelihood of E given M multiplied by the prior probability of M \[ P(M|E) \propto P(E|M)P(M).\] The foundations were laid for Bayesian Optimization by Jonas Mockus~\cite{mockus1974bayesian} in the 1970s and 1980s, but it was not until the early 2000s that Bayesian Optimization got applied to machine learning by Carl Edward Rasmussen~\cite{rasmussen2003gaussian}. Since then, it has become arguably the most prominent advanced technique for hyperparameter optimization, studied by countless groups and being implemented in many popular hyperparameter optimization frameworks.
 
-In general, Bayesian optimization is a class of optimization methods focused on optimizing a real-valued objective function \[ \max_{x\in A} f(x). \]
-Since we have defined the hyperparameter optimization problem as minimization of the loss function, we can assume that $f$ is defined as $f(\lambda)=-\mathcal{L}(\lambda)$. Maximizing this function is equivalent to minimizing the original function. Also, not all hyperparameters are real-valued but we will address that later.
+% BO algorithm introduction
+The basic loop of a Bayesian optimization algorithm is simple as shown in Algorithm \ref{alg:bo}. First, the internal model is used to suggest the next hyperparameter configuration to try. This query is much cheaper than evaluating the objective function. We can think of the suggestion as the most promising configuration given the previous observations. More precisely, the algorithm maximizes an \textit{acquisition function} $a$ defined from the \textit{surrogate model}. Then the objective function is evaluated at this configuration and the observed result is added to a database. The surrogate is updated using the database with the new observation and the process is repeated until some stopping condition is triggered, e.g.\ the algorithm runs out of budget.
 
-We assume that the objective is Lipschitz-continuous. That is, there exists some constant $C$ such that for all $x_1,x_2\in A: ||f(x_1)-f(x_2)|| \leq C||x_1-x_2||$. The constant $C$ may be unknown. The objective is commonly a black-box function, which in our case is true. We also assume that the search space is bounded in all dimensions.
 
-The method got its name from the Bayes' theorem.
+\begin{algorithm}
+    \caption{Bayesian Optimization}
+    \begin{algorithmic}[1]
+    % \State {\textbf{Initialize}:} Gaussian Process prior $GP$, acquisition function $a$, data $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^n$
+    \For{$t = 1, 2, ...$}
+        \State Find the next point $x_t$ to evaluate: $x_t = \argmax_{x} a(x|\mathcal{D}_{1:t-1})$.
+        \State Sample the objective function:  $y_t = f(x_t)+ \epsilon_t$.
+
+        \State Augment the data: $\mathcal{D}_{1:t}= \{\mathcal{D}_{1:t-1},(x_t, y_t)\}$.
+        \State Update the surrogate model given the data $\mathcal{D}_{1:t}$.
+    \EndFor
+    %\State \textbf{Return} the best point found (e.g., with the lowest $y$)
+    \end{algorithmic}
+    %\caption{}
+    \label{alg:bo}
+\end{algorithm}
+
+% Practical considerations - objective function
+Before we dive deeper into Bayesian Optimization, let us deal with some practical considerations and properties of the objective function and the feasible set. Since we have defined the hyperparameter optimization problem as minimization of the loss function, we can assume that $f$ is defined as $f(\lambda)=-\mathcal{L}(\lambda)$. Maximizing this function is equivalent to minimizing the original function. We also assume that the objective function is continuous. When we evaluate $f$, we observe only $f(x)$ and no first- or second-order derivatives, which would allow us to use a wider array of optimization methods. We do not know nor assume that $f$ has any special structure like concavity or linearity. To summarize, we can say that Bayesian Optimization is designed for black-box derivative-free global optimization.
+
+% Objective assumptions - Lipschitz-continuous.
+% We assume that the objective is Lipschitz-continuous. That is, there exists some constant $C$ such that for all $x_1,x_2\in A: ||f(x_1)-f(x_2)|| \leq C||x_1-x_2||$. The constant $C$ may be unknown.
+
+% Practical considerations - feasible set
+We assume further that all inputs $x$ are real-valued, which is not the case for all hyperparameters, and we will address this issue later. Finally, we assume the feasible set $A$ to be a hyper-rectangle $\{ x \in \mathbb{R}| a_i \leq x_i \leq b_i \}$, which makes it easy to assess membership.
+
+% Where was Bayesian optimization used?
+
+% General BO Summary
+The two main components of a Bayesian Optimization algorithm are a Bayesian statistical model and an acquisition function. The model approximates the objective function including the uncertainty over its predictions and the acquisition function directly influences the sampling of configurations to evaluate. We will go through both of these components in greater detail now.
+
+
+\subsection{Gaussian Process Regression}
+The default model in the Bayesian Optimization literature is the GP regression. Gaussian Processes
+
+"For continuous functions, Bayesian optimization typically works by assuming the unknown function was sampled from a Gaussian process and maintains a posterior distribution for this function as observations are made or, in our case, as the results of running learning algorithm experiments with different hyperparameters are observed (Practical Bayesian optimization 2012)"
+Good overview of Gaussian processes: \cite{brochu2010tutorial}.
 
 Practical BO of ML algorithms. They show how different kernels affect performance and describe algorithms that take into account the variable cost (duration) of learning algorithm experiments~\cite{snoek2012practical}.
 
-
-\subsection{Gaussian process}
-"For continuous functions, Bayesian optimization typically works by assuming the unknown function was sampled from a Gaussian process and maintains a posterior distribution for this function as observations are made or, in our case, as the results of running learning algorithm experiments with different hyperparameters are observed (Practical Bayesian optimization 2012)"
-Good overview of Gaussian processes: \cite{brochu2010tutorial}.
+Best suited for optimization over continuous domains of less than 20 dimensions and tolerates stochastic noise in function evaluations~\cite{frazier2018tutorial} Gaussian process regression is a Bayesian machine learning technique.
 
 
 \subsection{Parzen-Tree Estimator}
 
 Algorithms for hyperparameter optimization~\cite{bergstra2011algorithms} introduces TPE with Expected improvement.
 
+\subsection{Random Forest}
 
+Used in SMAC~\cite{hutter2010sequential}\cite{hutter2011sequential}.
+
+\subsection{Acquisition functions}
+Expected improvement
+Entropy search
+Knowledge gradient
 
 \section{Multifidelity techniques}
 Even though Bayesian optimization techniques are very sample-efficient, our budget might not allow for enough full training runs to find a good hyperparameter configuration. One option for dealing with such strict budget constraints is the multifidelity approach. A new hyperparameter $\lambda_{fid}$ is introduced that allows us to trade off runtime for the reliability of the information we gain from evaluation. Low fidelity values mean that the evaluations are cheap but unreliable. Fidelity close to the upper limit implies that the returned values are close to true objective values achievable with full budget. What we are most interested in is finding $\lambda_{fid}$ so that we use as few resources as possible and the rank correlation is mostly preserved between the models trained with low fidelity and the fully trained models. In other words, we want the low-fidelity models to reliably predict the ranking of the fully-trained models. In general, multifidelity HPO algorithms will start by evaluating cheap HPCs with low $\lambda_{fid}$ values and then using the remaining budget to exploit the gathered data and train the most promising models with high $\lambda_{fid}$.

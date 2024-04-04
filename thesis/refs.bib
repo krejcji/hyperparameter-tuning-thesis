@@ -1,3 +1,4 @@
+% Surveys
 @article{survey2020,
   title={On hyperparameter optimization of machine learning algorithms: Theory and practice},
   author={Yang, Li and Shami, Abdallah},
@@ -23,6 +24,8 @@
   year={2012}
 }
 
+
+% Practical guides
 @misc{tuningplaybookgithub,
   author = {Varun Godbole and George E. Dahl and Justin Gilmer and Christopher J. Shallue and Zachary Nado},
   title = {Deep Learning Tuning Playbook},
@@ -31,6 +34,8 @@
   note = {Version 1.0}
 }
 
+
+% Hyperparameter optimization frameworks
 @inproceedings{akiba2019optuna,
   title={{O}ptuna: A Next-Generation Hyperparameter Optimization Framework},
   author={Akiba, Takuya and Sano, Shotaro and Yanase, Toshihiko and Ohta, Takeru and Koyama, Masanori},
@@ -50,6 +55,47 @@
   url     = {http://jmlr.org/papers/v23/21-0888.html}
 }
 
+@inproceedings{hutter2011sequential,
+  title={Sequential model-based optimization for general algorithm configuration},
+  author={Hutter, Frank and Hoos, Holger H and Leyton-Brown, Kevin},
+  booktitle={Learning and Intelligent Optimization: 5th International Conference, LION 5, Rome, Italy, January 17-21, 2011. Selected Papers 5},
+  pages={507--523},
+  year={2011},
+  organization={Springer}
+}
+
+@article{hutter2010sequential,
+  title={Sequential model-based optimization for general algorithm configuration (extended version)},
+  author={Hutter, Frank and Hoos, Holger H and Leyton-Brown, Kevin},
+  journal={Technical Report TR-2010--10, University of British Columbia, Computer Science, Tech. Rep.},
+  year={2010}
+}
+
+
+% Multi-fidelity optimization
+@article{swersky2014freeze,
+  title={Freeze-thaw Bayesian optimization},
+  author={Swersky, Kevin and Snoek, Jasper and Adams, Ryan Prescott},
+  journal={arXiv preprint arXiv:1406.3896},
+  year={2014}
+}
+
+@inproceedings{domhan2015speeding,
+  title={Speeding up automatic hyperparameter optimization of deep neural networks by extrapolation of learning curves},
+  author={Domhan, Tobias and Springenberg, Jost Tobias and Hutter, Frank},
+  booktitle={Twenty-fourth international joint conference on artificial intelligence},
+  year={2015}
+}
+
+@inproceedings{klein2017fast,
+  title={Fast bayesian optimization of machine learning hyperparameters on large datasets},
+  author={Klein, Aaron and Falkner, Stefan and Bartels, Simon and Hennig, Philipp and Hutter, Frank},
+  booktitle={Artificial intelligence and statistics},
+  pages={528--536},
+  year={2017},
+  organization={PMLR}
+}
+
 @article{li2018hyperband,
   title={Hyperband: A novel bandit-based approach to hyperparameter optimization},
   author={Li, Lisha and Jamieson, Kevin and DeSalvo, Giulia and Rostamizadeh, Afshin and Talwalkar, Ameet},
@@ -58,6 +104,42 @@
   number={185},
   pages={1--52},
   year={2018}
+}
+
+@inproceedings{falkner2018bohb,
+  title={BOHB: Robust and efficient hyperparameter optimization at scale},
+  author={Falkner, Stefan and Klein, Aaron and Hutter, Frank},
+  booktitle={International conference on machine learning},
+  pages={1437--1446},
+  year={2018},
+  organization={PMLR}
+}
+
+@article{awad2021dehb,
+  title={Dehb: Evolutionary hyperband for scalable, robust and efficient hyperparameter optimization},
+  author={Awad, Noor and Mallik, Neeratyoy and Hutter, Frank},
+  journal={arXiv preprint arXiv:2105.09821},
+  year={2021}
+}
+
+@inproceedings{zhu2020accelerating,
+  title={Accelerating hyperparameter optimization of deep neural network via progressive multi-fidelity evaluation},
+  author={Zhu, Guanghui and Zhu, Ruancheng},
+  booktitle={Advances in Knowledge Discovery and Data Mining: 24th Pacific-Asia Conference, PAKDD 2020, Singapore, May 11--14, 2020, Proceedings, Part I 24},
+  pages={752--763},
+  year={2020},
+  organization={Springer}
+}
+
+@article{zimmer2021auto,
+  title={Auto-pytorch: Multi-fidelity metalearning for efficient and robust autodl},
+  author={Zimmer, Lucas and Lindauer, Marius and Hutter, Frank},
+  journal={IEEE transactions on pattern analysis and machine intelligence},
+  volume={43},
+  number={9},
+  pages={3079--3090},
+  year={2021},
+  publisher={IEEE}
 }
 
 @article{wistuba2022supervising,
@@ -69,6 +151,19 @@
   year={2022}
 }
 
+@article{yu2024two,
+  title={Two-step hyperparameter optimization method: Accelerating hyperparameter search by using a fraction of a training dataset},
+  author={Yu, Sungduk and Ma, Po-Lun and Singh, Balwinder and Silva, Sam and Pritchard, Mike},
+  journal={Artificial Intelligence for the Earth Systems},
+  volume={3},
+  number={1},
+  pages={e230013},
+  year={2024},
+  publisher={American Meteorological Society}
+}
+
+
+% Transfer learning
 @inproceedings{bardenet2013collaborative,
   title={Collaborative hyperparameter tuning},
   author={Bardenet, R{\'e}mi and Brendel, M{\'a}ty{\'a}s and K{\'e}gl, Bal{\'a}zs and Sebag, Michele},
@@ -102,21 +197,24 @@
   year={2021}
 }
 
-@inproceedings{domhan2015speeding,
-  title={Speeding up automatic hyperparameter optimization of deep neural networks by extrapolation of learning curves},
-  author={Domhan, Tobias and Springenberg, Jost Tobias and Hutter, Frank},
-  booktitle={Twenty-fourth international joint conference on artificial intelligence},
-  year={2015}
-}
-
-@article{swersky2014freeze,
-  title={Freeze-thaw Bayesian optimization},
-  author={Swersky, Kevin and Snoek, Jasper and Adams, Ryan Prescott},
-  journal={arXiv preprint arXiv:1406.3896},
-  year={2014}
-}
-
 % Bayesian optimization
+@inproceedings{mockus1974bayesian,
+  title={On Bayesian methods for seeking the extremum},
+  author={Mockus, Jonas},
+  booktitle={Proceedings of the IFIP Technical Conference},
+  pages={400--404},
+  year={1974}
+}
+
+@incollection{rasmussen2003gaussian,
+  title={Gaussian processes in machine learning},
+  author={Rasmussen, Carl Edward},
+  booktitle={Summer school on machine learning},
+  pages={63--71},
+  year={2003},
+  publisher={Springer}
+}
+
 @article{brochu2010tutorial,
   title={A tutorial on Bayesian optimization of expensive cost functions, with application to active user modeling and hierarchical reinforcement learning},
   author={Brochu, Eric and Cora, Vlad M and De Freitas, Nando},

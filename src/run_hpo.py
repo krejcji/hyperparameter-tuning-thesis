@@ -17,22 +17,21 @@ from train_net import train_net
 from logger import Logger
 from logger import BudgetExceededException
 
-EXP_NAME = "smac" # Default experiment name if not provided in command line
+EXP_NAME = "opt_cifar" # Default experiment name if not provided in command line
 
 # Implemented optimizers - Optuna (+RS, HB), SMAC (+BOHB), DEHB
 
 # Optuna objective function
 def objective_optuna(trial, trainloader=None, valloader=None, config=None, logger=None):
     # Suggest new parameter values
-    params = parse_fixed_params(config)
     for param in config['tunable_params']:
         name = param['name']
         if param['type'] == 'float':
-            params[name] = trial.suggest_float(param['name'], param['low'], param['high'], log=param['log'])
+            config[name] = trial.suggest_float(param['name'], param['low'], param['high'], log=param['log'])
         elif param['type'] == 'int':
-            params[name] = trial.suggest_int(param['name'], param['low'], param['high'])
+            config[name] = trial.suggest_int(param['name'], param['low'], param['high'])
         elif param['type'] == 'categorical':
-            params[name] = trial.suggest_categorical(param['name'], param['choices'])
+            config[name] = trial.suggest_categorical(param['name'], param['choices'])
         else:
             raise ValueError(f"Unknown parameter type: {param['type']}")
 
@@ -42,7 +41,7 @@ def objective_optuna(trial, trainloader=None, valloader=None, config=None, logge
         loss = train_net(trainloader, valloader, params, config, trial)
     print(prof.key_averages().table(sort_by="self_cpu_time_total"))
     '''
-    loss = train_net(trainloader, valloader, params, config, trial=trial, logger=logger)
+    loss = train_net(trainloader, valloader, config, trial=trial, logger=logger)
 
     return loss
 
@@ -51,7 +50,7 @@ def optimize_optuna(config, trainloader, valloader, logger, repeat=0):
     if not os.path.exists(f"experiments/{exp_name}/outputs"):
         os.makedirs(f"experiments/{exp_name}/outputs")
 
-    # The database must not exists, or Optuna would throw an exception
+    # The database must not exist
     db_str = f"experiments/{exp_name}/outputs/{exp_name}_{repeat}.db"
     db_path = Path(db_str)
     if db_path.exists():
@@ -77,14 +76,15 @@ def optimize_rs(config, trainloader, valloader, logger):
 # SMAC objective function
 def objective_smac(config, seed: int=0, trainloader=None, valloader=None, configuration=None, budget=None, logger=None):
     params = dict(config)
-    for param in configuration['fixed_params']:
-        params[param['name']] = param['value']
+
+    # Update the configuration with the sampled parameters
+    configuration.update(params)
 
     # Internal budget allocated by SMAC
     if budget is not None:
         params['epochs'] = int(budget)
 
-    loss = train_net(trainloader, valloader, params, configuration, logger=logger)
+    loss = train_net(trainloader, valloader, configuration, logger=logger)
 
     return loss
 
@@ -160,14 +160,13 @@ def optimize_smac_multifidelity(config, trainloader, valloader, logger, walltime
     incumbent = smac.optimize()
 
 # DEHB objective function
-def objective_dehb(configuration, fidelity,  config=None, seed: int=0, trainloader=None, valloader=None, configuration_0=None, logger=None):
-    params = parse_fixed_params(configuration_0)
+def objective_dehb(configuration, fidelity,  config=None, seed: int=0, trainloader=None, valloader=None, logger=None):
+    params= dict(configuration)
 
-    for param in configuration:
-        params[param] = configuration[param]
+    config.updat(params)
 
-    params['epochs'] = int(fidelity) if fidelity > 1 else 1
-    loss = train_net(trainloader, valloader, params, configuration_0, logger=logger)
+    config['epochs'] = int(fidelity) if fidelity > 1 else 1
+    loss = train_net(trainloader, valloader, config, logger=logger)
 
     result = {
         'fitness': loss,
@@ -191,7 +190,7 @@ def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=
             raise ValueError(f"Unknown parameter type: {param['type']}")
         configspace.add_hyperparameter(hp)
 
-    obj_function = partial(objective_dehb, config=config, seed=seed, trainloader=trainloader, valloader=valloader, configuration_0=config, logger=logger)
+    obj_function = partial(objective_dehb, config=config, trainloader=trainloader, valloader=valloader, logger=logger)
 
     dimensions = len(configspace.get_hyperparameters())
     min_fidelity = 1
@@ -209,11 +208,19 @@ def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=
     # TODO : Calculate fevals based on budget
     dehb.run(fevals=3*budget/max_epochs, verbose=True)
 
+'''
 def parse_fixed_params(config):
     params = dict()
+
     for param in config['fixed_params']:
         params[param['name']] = param['value']
     return params
+'''
+
+def parse_fixed_params_inplace(config):
+    for param in config['fixed_params']:
+        config[param['name']] = param['value']
+    return config
 
 if __name__ == '__main__':
     seed = 42
@@ -235,8 +242,8 @@ if __name__ == '__main__':
         # Logging
         logging_dir = Path('experiments') / exp_name / 'outputs'
         # Logger can stop optimization if budget is exceeded
-        params = parse_fixed_params(config)
-        budget = config['hp_optimizer']['budget'] * params['epochs']
+        parse_fixed_params_inplace(config)
+        budget = config['hp_optimizer']['budget'] * config['epochs']
         logger = Logger(config, wandb=False, dir=logging_dir,budget=budget, start_time=walltime, max_time=max_time)
         time_left = max_time - (time.time() - walltime)
 
@@ -247,9 +254,9 @@ if __name__ == '__main__':
             elif config['hp_optimizer']['name'] == 'SMAC':
                 optimize_smac(config, trainloader, valloader, logger, time_left, budget=budget)
             elif config['hp_optimizer']['name'] == 'SMAC_Multifidelity':
-                optimize_smac_multifidelity(config, trainloader, valloader, logger, time_left, params['epochs'], opt_budget=budget)
+                optimize_smac_multifidelity(config, trainloader, valloader, logger, time_left, config['epochs'], opt_budget=budget)
             elif config['hp_optimizer']['name'] == 'DEHB':
-                optimize_dehb(config, trainloader, valloader, logger, max_epochs=params['epochs'], budget=budget)
+                optimize_dehb(config, trainloader, valloader, logger, max_epochs=config['epochs'], budget=budget)
             elif config['hp_optimizer']['name'] == 'RandomSearch':
                 optimize_rs(config, trainloader, valloader, logger)
             elif config['hp_optimizer']['name'] == 'DyHPO':

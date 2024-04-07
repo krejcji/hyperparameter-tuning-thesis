@@ -11,15 +11,15 @@ import numpy as np
 from load_model import load_model
 import dl_utils
 
-def train_net(train_loader, val_loader, params, config, logger,
+def train_net(train_loader, val_loader, params, logger,
         trial=None, previous_epoch=0, end_epoch=0, checkpoint_path=None):
-    batch_size = config['data']['batch_size']
-    input_dim = config['data']['input_dim']
+    batch_size = params['data']['batch_size']
+    input_dim = params['data']['input_dim']
     input_size = [batch_size] + input_dim
     input_size = tuple(input_size)
 
     # Load model
-    model = load_model(config, params=params)
+    model = load_model(params)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     summary(model, input_size=input_size)
 
@@ -123,7 +123,7 @@ def train_net(train_loader, val_loader, params, config, logger,
 
         val_loss.append(sum(val_loss_per_step)/len(val_loss_per_step))
         losses = {'val_loss': val_loss[-1], 'train_loss': train_loss[-1]}
-        metrics = dl_utils.evaluate_metrics(config, np.concatenate(y_true), np.concatenate(y_pred))
+        metrics = dl_utils.evaluate_metrics(params, np.concatenate(y_true), np.concatenate(y_pred))
         metrics.update(losses)
         end_time = time.time()
         elapsed_time = end_time - start_time

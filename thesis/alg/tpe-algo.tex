@@ -1,0 +1,48 @@
+% Originally from Watanabe, Shuhei. "Tree-structured Parzen estimator: Understanding its algorithm components and their roles for better empirical performance." arXiv preprint arXiv:2304.11127 (2023).
+
+\begin{algorithm}[tb]
+  \caption{Tree-structured Parzen estimator (TPE) as in Watanabe~\cite{watanabe2023tree}}
+  \label{tpe-algo}
+  \begin{algorithmic}[1]
+    \Statex{$N_{\mathrm{init}}$ (The number of initial configurations),
+    $N_{s}$
+    (The number of candidates to consider in the optimization of the acquisition function),
+    $\Gamma$
+    (A function to compute the top quantile $\gamma$),
+    $W$
+    (A function to compute weights $\{w_n\}_{n=0}^{N+1}$),
+    $k$
+    (A kernel function),
+    $B$
+    (A function to compute a bandwidth $b$ for $k$).
+    }
+    \State{$\D \leftarrow \emptyset$}
+    \For{$n = 1, 2, \dots, N_{\mathrm{init}}$}
+    \Comment{Initialization}
+    \State{Randomly pick $\xv_n$}
+    \State{$y_n \coloneq f(\xv_n) + \epsilon_n$}
+    \Comment{Evaluate the (expensive) objective function}
+    \State{$\D \leftarrow \D \cup \{(\xv_n, y_n)\}$}
+    \EndFor
+    \While{Budget is left}
+    \label{main:background:line:tpe-algo-start}
+    \State{Compute $\gamma \leftarrow \Gamma(N)$ with $N \coloneq |\D| $}
+    \Comment{Section~\ref{main:algorithm-detail:section:gamma}~(Splitting algorithm)}
+    \State{Split $\D$ into $\Dl$ and $\Dg$}
+    \State{Compute $\{w_n\}_{n=0}^{N+1} \leftarrow W(\D)$}
+    \Comment{See Section~\ref{main:algorithm-detail:section:weight}~(Weighting algorithm)}
+    \State{Compute $\bl \leftarrow B(\Dl), \bg \leftarrow B(\Dg)$}
+    \Comment{Section~\ref{main:algorithm-detail:section:bandwidth}~(Bandwidth selection)}
+    \State{Build $p(\xv \given  \Dl), p(\xv\given \Dg)$ based on Eq.~(\ref{eqn:tpe:kdes})}
+    \Comment{Use $\{w_n\}_{n=0}^{N+1}$ and $\bl, \bg$}
+    \State{Sample $\mathcal{S} \coloneq \{\xv_s\}_{s=1}^{N_s} \sim p(\xv\given \Dl)$}
+    \State{Pick $\xv_{N + 1} \coloneq \xv^\star \in \argmax_{\xv \in \mathcal{S}} r(\xv \given \D)$}
+    \label{main:background:line:tpe-algo-greedy}
+    \Comment{The evaluations by the acquisition function}
+    \State{$y_{N + 1} \coloneq f(\xv_{N + 1}) + \epsilon_{N+1}$}
+    \Comment{Evaluate the (expensive) objective function}
+    \State{$\D \leftarrow \D \cup \{\xv_{N + 1}, y_{N + 1}\}$}
+    \EndWhile
+    \label{tpe-algo-end}
+  \end{algorithmic}
+\end{algorithm}

@@ -60,6 +60,9 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Torch models
+*.pt
+
 # Translations
 *.mo
 *.pot
@@ -137,6 +140,8 @@ ENV/
 env.bak/
 venv.bak/
 .vizier_env/
+.ppg_processing
+.st_venv
 
 
 # Spyder project settings

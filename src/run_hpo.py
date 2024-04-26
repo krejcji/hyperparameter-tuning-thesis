@@ -17,7 +17,7 @@ from train_net import train_net
 from logger import Logger
 from logger import BudgetExceededException
 
-EXP_NAME = "opt_cifar" # Default experiment name if not provided in command line
+EXP_NAME = "kaggle_new_subsampled" # Default experiment name if not provided in command line
 
 # Implemented optimizers - Optuna (+RS, HB), SMAC (+BOHB), DEHB
 
@@ -41,7 +41,12 @@ def objective_optuna(trial, trainloader=None, valloader=None, config=None, logge
         loss = train_net(trainloader, valloader, params, config, trial)
     print(prof.key_averages().table(sort_by="self_cpu_time_total"))
     '''
-    loss = train_net(trainloader, valloader, config, trial=trial, logger=logger)
+    if 'config_repeats' in config['hp_optimizer']:
+        repeats = config['hp_optimizer']['config_repeats']
+    else:
+        repeats = 1
+    for i in range(repeats):
+        loss = train_net(trainloader, valloader, config, trial=trial, logger=logger, run=i)
 
     return loss
 
@@ -163,7 +168,7 @@ def optimize_smac_multifidelity(config, trainloader, valloader, logger, walltime
 def objective_dehb(configuration, fidelity,  config=None, seed: int=0, trainloader=None, valloader=None, logger=None):
     params= dict(configuration)
 
-    config.updat(params)
+    config.update(params)
 
     config['epochs'] = int(fidelity) if fidelity > 1 else 1
     loss = train_net(trainloader, valloader, config, logger=logger)
@@ -244,7 +249,7 @@ if __name__ == '__main__':
         # Logger can stop optimization if budget is exceeded
         parse_fixed_params_inplace(config)
         budget = config['hp_optimizer']['budget'] * config['epochs']
-        logger = Logger(config, wandb=False, dir=logging_dir,budget=budget, start_time=walltime, max_time=max_time)
+        logger = Logger(config, wandb=True, dir=logging_dir,budget=budget, start_time=walltime, max_time=max_time)
         time_left = max_time - (time.time() - walltime)
 
         try:

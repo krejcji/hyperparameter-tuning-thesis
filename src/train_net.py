@@ -12,7 +12,7 @@ from load_model import load_model
 import dl_utils
 
 def train_net(train_loader, val_loader, params, logger,
-        trial=None, previous_epoch=0, end_epoch=0, checkpoint_path=None):
+        trial=None, previous_epoch=0, end_epoch=0, checkpoint_path=None, run=0):
     batch_size = params['data']['batch_size']
     input_dim = params['data']['input_dim']
     input_size = [batch_size] + input_dim
@@ -21,19 +21,37 @@ def train_net(train_loader, val_loader, params, logger,
     # Load model
     model = load_model(params)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Device: {device}")
     summary(model, input_size=input_size)
 
     # Optimizer
+    lr = params['learning_rate']
     if params['optimizer'] == 'SGD':
-        opt = torch.optim.SGD(model.parameters(), lr=params['learning_rate'])
+        opt = torch.optim.SGD(model.parameters(), lr=lr)
     if params['optimizer'] == 'AdamW':
-        opt = torch.optim.AdamW(model.parameters(), lr=params['learning_rate'])
+        opt = torch.optim.AdamW(model.parameters(), lr=lr)
     elif params['optimizer'] == 'Adam':
-        opt = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
+        opt = torch.optim.Adam(model.parameters(), lr=lr)
     else:
         raise NotImplementedError('Optimizer not supported')
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         opt, mode='min', factor=0.1, patience=5)
+
+    # Set the number of training epochs
+    if end_epoch != 0:
+        n_epochs = end_epoch - previous_epoch
+    else:
+        n_epochs = params['epochs']
+        previous_epoch = 0
+        end_epoch = n_epochs
+
+    # Scheduler  TODO: Test if saving and loading works correctly
+    if 'decay' not in params:
+        pass
+    elif params['decay'] == 'cosine':
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=params['epochs'], eta_min=params['eta_min']*lr)
+    else:
+        raise NotImplementedError('Scheduler not supported')
 
     # Loss function
     if params['loss'] == 'BCEWithLogitsLoss':
@@ -65,10 +83,7 @@ def train_net(train_loader, val_loader, params, logger,
             load_checkpoint(model, opt, checkpoint_path)
         n_epochs = end_epoch - previous_epoch
     else:
-        n_epochs = params['epochs']
         id = datetime.now().strftime("%Y%m%d-%H%M%S")
-        previous_epoch = 0
-        end_epoch = n_epochs
     model.to(device)
 
     # Logging
@@ -128,6 +143,8 @@ def train_net(train_loader, val_loader, params, logger,
         end_time = time.time()
         elapsed_time = end_time - start_time
 
+        scheduler.step(val_loss[-1])
+
         print (f"loss: {train_loss[-1]:.4e}, val_loss: {val_loss[-1]:.4e} ")
 
         logger.log(metrics, epoch+1, elapsed_time)
@@ -141,7 +158,17 @@ def train_net(train_loader, val_loader, params, logger,
 
     logger.finish()
 
-    # Save checkpoint and return evaluation info
+    # Save model with the config file to enable loading
+    if 'save_model' in params and params['save_model']:
+        savedir = logger.get_logdir() / 'models'
+        if not savedir.exists():
+            savedir.mkdir(parents=True, exist_ok=True)
+        model_path = savedir / f'model_{id}.pt'
+        config_path = savedir / f'model_{id}.yaml'
+        torch.save(model.state_dict(), model_path)
+        logger.save_config(params, config_path)
+
+    # Save checkpoint (for optimization purposes) and return evaluation info
     if checkpoint_path is not None:
         save_checkpoint(model, opt, end_epoch, checkpoint_path)
         evaluated_info = [
@@ -152,14 +179,21 @@ def train_net(train_loader, val_loader, params, logger,
     else:
         return val_loss[-1]
 
-def save_checkpoint(model, optimizer, epoch, checkpoint_path):
+def save_checkpoint(model, optimizer, scheduler, epoch, checkpoint_path):
+    if scheduler is None:
+        scheduler_dict = dict()
+    else:
+        scheduler_dict = scheduler.state_dict()
     torch.save({
         'epoch': epoch,
         'model': model.state_dict(),
-        'optimizer': optimizer.state_dict()
+        'optimizer': optimizer.state_dict(),
+        'scheduler': scheduler_dict
     }, checkpoint_path)
 
-def load_checkpoint(model, optimizer, checkpoint_path):
+def load_checkpoint(model, optimizer, scheduler, checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     model.load_state_dict(checkpoint['model'])
     optimizer.load_state_dict(checkpoint['optimizer'])
+    if scheduler is not None:
+        scheduler.load_state_dict(checkpoint['scheduler'])

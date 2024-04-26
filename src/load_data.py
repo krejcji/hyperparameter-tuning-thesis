@@ -16,6 +16,11 @@ v2.RandomResize(28,36),
 v2.Pad(4),
 v2.RandomCrop(32),
 v2.RandomHorizontalFlip(),
+v2.ToDtype(torch.float32, scale=True),
+])
+
+transformation_test = v2.Compose([
+    v2.ToDtype(torch.float32, scale=True),
 ])
 
 mnist_transform = v2.Compose([
@@ -27,7 +32,10 @@ mnist_transform = v2.Compose([
 #])
 
 def augmentation_fn(image):
-    return transformation(torch.as_tensor(image))
+    return transformation(torch.as_tensor(image) / 255.0)
+
+def cifar10_fn(image):
+    return transformation_test(torch.as_tensor(image) / 255.0)
 
 def mnist_fn(image):
     return mnist_transform(image)
@@ -59,7 +67,7 @@ def load_data(config):
 
         cifar10 = CIFAR10(CIFAR10_PATH)
         train = cifar10.dataset('train', augmentation_fn)
-        dev = cifar10.dataset('dev', None)
+        dev = cifar10.dataset('dev', cifar10_fn)
     elif config['data']['name'] == 'MNIST':
         train = MNIST(root='data', train=True, download=True, transform=mnist_fn)
         dev = MNIST(root='data', train=False, download=True, transform=mnist_fn)

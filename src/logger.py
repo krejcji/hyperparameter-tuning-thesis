@@ -2,12 +2,14 @@ from pathlib import Path
 import wandb
 from datetime import datetime
 import time
+import yaml
 
 
 class Logger:
     def __init__(self, config, wandb=False, dir=None, budget=None, start_time=None, max_time=None):
         self.exp_id = f"log_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.config = config
+        self.logdir = dir
 
         self.wandb_enabled = wandb
 
@@ -84,6 +86,13 @@ class Logger:
     def finish(self):
         if self.wandb_enabled:
             wandb.finish()
+
+    def get_logdir(self):
+        return self.logdir
+
+    def save_config(self, params, path):
+        with open(path, 'w') as f:
+            yaml.dump(params, f)
 
 class BudgetExceededException(Exception):
     pass

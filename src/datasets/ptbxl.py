@@ -17,25 +17,24 @@ def load_raw_data(df, sampling_rate, path):
     data = np.array([signal for signal, meta in data])
     return data
 
-def encode_labels(series):
+def encode_labels(series, train=True):
     """
     One-hot encode a Series of lists of strings (e.g. diagnostic superclass labels)
     """
+    diag_superclass = ['NORM', 'MI', 'STTC', 'CD', 'HYP']
     # Get the original length of the Series
     original_length = len(series)
-
-    # Explode the Series to get unique strings
-    exploded = series.explode()
-    unique_strings = exploded.unique()
+    val_true = 0.9 if train else 1.0
+    val_false = 0.1 if train else 0.0
 
     # Create the DataFrame with original length
-    df = pd.DataFrame(columns=unique_strings, data=np.zeros((original_length, len(unique_strings)), dtype=np.float32))
+    df = pd.DataFrame(columns=diag_superclass, data=np.full((original_length, len(diag_superclass)), val_false, dtype=np.float32))
 
     # Iterate over the original Series using explicit index access
     for i in range(original_length):
         values = series.iloc[i]
         for string in values:
-            df.loc[i, string] = 1.0
+            df.loc[i, string] = val_true
 
     return df
 
@@ -64,6 +63,8 @@ def store_processed_data(path):
 
     # Apply diagnostic superclass
     Y['diagnostic_superclass'] = Y.scp_codes.apply(aggregate_diagnostic)
+    Y['lengths'] = Y['diagnostic_superclass'].apply(lambda x: len(x))
+    Y = Y[Y.lengths > 0] # Remove samples without diagnostic superclass
 
     # Split data into train and test (validation)
     test_fold = 10
@@ -78,7 +79,7 @@ def store_processed_data(path):
     X_test = np.swapaxes(X_test, 1,2).astype(np.float32)
 
     y_test = Y[Y.strat_fold == test_fold].diagnostic_superclass
-    y_test = encode_labels(y_test).to_numpy()
+    y_test = encode_labels(y_test, train=False).to_numpy()
 
     #
     #y_test = y_test.apply(lambda x: x[0] if len(x) > 0 else 'EMPTY').factorize()[0]
@@ -100,7 +101,7 @@ def load_dataset(path, train, random_samples=False):
     return X, y
 
 class PTBXLDataset(Dataset):
-    def __init__(self, dir, train=True, transform=None, seq_length=250):
+    def __init__(self, dir, train=True, transform=None, seq_length=256):
         self.transform = transform
         self.seq_length = seq_length
         self.X, self.y = load_dataset(dir, train, random_samples=True)
@@ -110,6 +111,7 @@ class PTBXLDataset(Dataset):
         sample_len = self.X[index].shape[1]
         # Sample fixed-length window at random location in the sequence
         rnd = np.random.randint(0, sample_len-self.seq_length)
+
         return (self.X[index,:,rnd:rnd+self.seq_length], self.y[index])
 
 if __name__== "__main__":

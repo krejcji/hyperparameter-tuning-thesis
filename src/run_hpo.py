@@ -3,6 +3,7 @@ import os
 import time
 from pathlib import Path
 from functools import partial
+import random
 
 import optuna
 import yaml
@@ -11,13 +12,15 @@ from smac import HyperparameterOptimizationFacade, MultiFidelityFacade, Scenario
 from smac.intensifier.hyperband import Hyperband
 from smac import Callback
 from ConfigSpace import ConfigurationSpace, Float, Integer, Categorical
+import torch
 
 from load_data import load_data
 from train_net import train_net
 from logger import Logger
 from logger import BudgetExceededException
 
-EXP_NAME = "kaggle_new_subsampled" # Default experiment name if not provided in command line
+EXP_NAME = "svhn_test" # Default experiment name if not provided in command line
+NUM_THREADS = 1
 
 # Implemented optimizers - Optuna (+RS, HB), SMAC (+BOHB), DEHB
 
@@ -181,7 +184,7 @@ def objective_dehb(configuration, fidelity,  config=None, seed: int=0, trainload
 
     return result
 
-def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=None):
+def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=None, seed=0):
     configspace = ConfigurationSpace()
     for param in config['tunable_params']:
         name = param['name']
@@ -195,7 +198,7 @@ def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=
             raise ValueError(f"Unknown parameter type: {param['type']}")
         configspace.add_hyperparameter(hp)
 
-    obj_function = partial(objective_dehb, config=config, trainloader=trainloader, valloader=valloader, logger=logger)
+    obj_function = partial(objective_dehb, config=config, trainloader=trainloader, valloader=valloader, logger=logger, seed=seed)
 
     dimensions = len(configspace.get_hyperparameters())
     min_fidelity = 1
@@ -228,13 +231,14 @@ def parse_fixed_params_inplace(config):
     return config
 
 if __name__ == '__main__':
-    seed = 42
+    seed = random.randint(0, 1000)
     # Experiment name has to be defined
     exp_name = sys.argv[1] if len(sys.argv) > 1 else EXP_NAME
 
     # Load the configuration file
     with open(Path('experiments') / exp_name /'config.yaml') as file:
         config = yaml.safe_load(file)
+    torch.set_num_threads(NUM_THREADS)
 
     # Set the time limits
     walltime = time.time()
@@ -261,7 +265,7 @@ if __name__ == '__main__':
             elif config['hp_optimizer']['name'] == 'SMAC_Multifidelity':
                 optimize_smac_multifidelity(config, trainloader, valloader, logger, time_left, config['epochs'], opt_budget=budget)
             elif config['hp_optimizer']['name'] == 'DEHB':
-                optimize_dehb(config, trainloader, valloader, logger, max_epochs=config['epochs'], budget=budget)
+                optimize_dehb(config, trainloader, valloader, logger, max_epochs=config['epochs'], budget=budget, seed=seed)
             elif config['hp_optimizer']['name'] == 'RandomSearch':
                 optimize_rs(config, trainloader, valloader, logger)
             elif config['hp_optimizer']['name'] == 'DyHPO':
@@ -271,3 +275,4 @@ if __name__ == '__main__':
         except BudgetExceededException as e:
             print(f"Budget exceeded: {e}")
             continue
+        seed += 1

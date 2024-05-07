@@ -19,7 +19,7 @@ from train_net import train_net
 from logger import Logger
 from logger import BudgetExceededException
 
-EXP_NAME = "svhn_test" # Default experiment name if not provided in command line
+EXP_NAME = "ptbxl_debugging" # Default experiment name if not provided in command line
 NUM_THREADS = 1
 
 # Implemented optimizers - Optuna (+RS, HB), SMAC (+BOHB), DEHB
@@ -184,7 +184,7 @@ def objective_dehb(configuration, fidelity,  config=None, seed: int=0, trainload
 
     return result
 
-def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=None, seed=0):
+def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=None, time_budget=None, seed=0):
     configspace = ConfigurationSpace()
     for param in config['tunable_params']:
         name = param['name']
@@ -212,10 +212,16 @@ def optimize_dehb(config, trainloader, valloader, logger, max_epochs=15, budget=
         output_path='dehb_results',
         n_workers=1,
     )
+    dehb.reset()
 
-    # TODO : Calculate fevals based on budget
-    dehb.run(fevals=3*budget/max_epochs, verbose=True)
-
+    if time_budget is not None:
+        dehb.run(total_cost=time_budget, verbose=True)
+    elif budget is not None:
+        # TODO : Calculate fevals based on budget
+        fevals = 3*budget/max_epochs # Estimate number of function evaluations
+        dehb.run(fevals=fevals, verbose=True)
+    else:
+        raise ValueError("Either epochs budget or time budget must be provided")
 '''
 def parse_fixed_params(config):
     params = dict()
@@ -243,6 +249,7 @@ if __name__ == '__main__':
     # Set the time limits
     walltime = time.time()
     max_time = config['wall_time'] * 60 # Wall time is in minutes, convert to seconds
+    time_per_epoch = (max_time*0.9) / config['hpo_optimizer']['hpo_repeats']
 
     # Load the data
     trainloader, valloader = load_data(config)
@@ -252,6 +259,7 @@ if __name__ == '__main__':
         logging_dir = Path('experiments') / exp_name / 'outputs'
         # Logger can stop optimization if budget is exceeded
         parse_fixed_params_inplace(config)
+        # Express budget in terms of epochs
         budget = config['hp_optimizer']['budget'] * config['epochs']
         logger = Logger(config, wandb=True, dir=logging_dir,budget=budget, start_time=walltime, max_time=max_time)
         time_left = max_time - (time.time() - walltime)
@@ -265,7 +273,7 @@ if __name__ == '__main__':
             elif config['hp_optimizer']['name'] == 'SMAC_Multifidelity':
                 optimize_smac_multifidelity(config, trainloader, valloader, logger, time_left, config['epochs'], opt_budget=budget)
             elif config['hp_optimizer']['name'] == 'DEHB':
-                optimize_dehb(config, trainloader, valloader, logger, max_epochs=config['epochs'], budget=budget, seed=seed)
+                optimize_dehb(config, trainloader, valloader, logger, max_epochs=config['epochs'], time_budget=time_per_epoch, seed=seed)
             elif config['hp_optimizer']['name'] == 'RandomSearch':
                 optimize_rs(config, trainloader, valloader, logger)
             elif config['hp_optimizer']['name'] == 'DyHPO':

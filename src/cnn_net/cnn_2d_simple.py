@@ -6,31 +6,22 @@ import torch.nn.functional as F
 class CNN2DSimpleNet(nn.Module):
     def __init__(self, params):
         super().__init__()
-        if params is not None and 'fc_neurons' in params:
-            fc_neurons = params['fc_neurons']
-        else:
-            fc_neurons = 90
-
         self.layers = nn.ModuleList()
 
         in_channels = params['data']['input_dim'][0]
         out_channels = params['channel_multiplier']
         width = params['data']['input_dim'][1]
 
-        if 'batch_norm' in params and params['batch_norm']:
-            self.use_bias = True
-            self.batch_norm = True
-        else:
-            self.use_bias = False
-            self.batch_norm = False
+        batch_norm = params.get('batch_norm', False)
+        fc_neurons = params.get('fc_neurons', 90)
 
         for _ in range(params['conv_layers']):
-            if self.batch_norm:
+            if batch_norm:
                 self.layers.append(nn.Sequential(
-                    nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=(1,1), bias=self.use_bias),
+                    nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=(1,1), bias=False),
                     nn.BatchNorm2d(out_channels)))
             else:
-                self.layers.append(nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=(1,1)), bias=self.use_bias)
+                self.layers.append(nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=(1,1),bias=True))
             in_channels = out_channels
             out_channels *= 2
             width = width // 2

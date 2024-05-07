@@ -249,7 +249,7 @@ if __name__ == '__main__':
     # Set the time limits
     walltime = time.time()
     max_time = config['wall_time'] * 60 # Wall time is in minutes, convert to seconds
-    time_per_epoch = (max_time*0.9) / config['hpo_optimizer']['hpo_repeats']
+    time_per_epoch = (max_time*0.9) / config['hp_optimizer']['hpo_repeats']
 
     # Load the data
     trainloader, valloader = load_data(config)

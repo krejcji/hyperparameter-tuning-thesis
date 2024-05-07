@@ -28,7 +28,7 @@ def train_net(train_loader, val_loader, params, logger,
     lr = params['learning_rate']
     if params['optimizer'] == 'SGD':
         opt = torch.optim.SGD(model.parameters(), lr=lr)
-    if params['optimizer'] == 'AdamW':
+    elif params['optimizer'] == 'AdamW':
         opt = torch.optim.AdamW(model.parameters(), lr=lr)
     elif params['optimizer'] == 'Adam':
         opt = torch.optim.Adam(model.parameters(), lr=lr)
@@ -59,7 +59,8 @@ def train_net(train_loader, val_loader, params, logger,
     elif params['loss'] == 'MSELoss':
         loss_fn = torch.nn.MSELoss()
     elif params['loss'] == 'CrossEntropyLoss':
-        loss_fn = torch.nn.CrossEntropyLoss()
+        label_smoothing = params.get('label_smoothing', 0.0)
+        loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=label_smoothing)
     else:
         raise NotImplementedError('Loss function not supported')
 
@@ -109,8 +110,8 @@ def train_net(train_loader, val_loader, params, logger,
                 loss.backward()
                 opt.step()
                 per_epoch.set_postfix(train_loss=loss.item())
-            if scheduler.__module__ == 'torch.optim.lr_scheduler':
-                scheduler.step(1)
+            #if scheduler.__module__ == 'torch.optim.lr_scheduler':
+            #    scheduler.step()
 
         train_loss.append(sum(loss_per_step)/len(loss_per_step))
 
@@ -143,7 +144,7 @@ def train_net(train_loader, val_loader, params, logger,
         end_time = time.time()
         elapsed_time = end_time - start_time
 
-        scheduler.step(val_loss[-1])
+        scheduler.step()
 
         print (f"loss: {train_loss[-1]:.4e}, val_loss: {val_loss[-1]:.4e} ")
 

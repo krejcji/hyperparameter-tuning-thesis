@@ -64,21 +64,21 @@ def store_processed_data(path):
     # Apply diagnostic superclass
     Y['diagnostic_superclass'] = Y.scp_codes.apply(aggregate_diagnostic)
     Y['lengths'] = Y['diagnostic_superclass'].apply(lambda x: len(x))
-    Y = Y[Y.lengths > 0] # Remove samples without diagnostic superclass
+    # Y = Y[Y.lengths > 0] # Remove samples without diagnostic superclass
 
     # Split data into train and test (validation)
     test_fold = 10
 
-    X_train = X[np.where(Y.strat_fold != test_fold)]
+    X_train = X[np.where((Y.strat_fold != test_fold) & (Y.lengths > 0))]
     X_train = np.swapaxes(X_train, 1,2).astype(np.float32)
 
-    y_train = Y[(Y.strat_fold != test_fold)].diagnostic_superclass
+    y_train = Y[(Y.strat_fold != test_fold) & (Y.lengths > 0)].diagnostic_superclass
     y_train = encode_labels(y_train).to_numpy()
 
-    X_test = X[np.where(Y.strat_fold == test_fold)]
+    X_test = X[np.where((Y.strat_fold == test_fold) & (Y.lengths > 0))]
     X_test = np.swapaxes(X_test, 1,2).astype(np.float32)
 
-    y_test = Y[Y.strat_fold == test_fold].diagnostic_superclass
+    y_test = Y[(Y.strat_fold == test_fold) & (Y.lengths > 0)].diagnostic_superclass
     y_test = encode_labels(y_test, train=False).to_numpy()
 
     #

@@ -1,29 +1,129 @@
-\chapter{Background and Literature Review}
+\chapter{Background}
 % Maybe split into two chapters?
 
 \label{chap:refs}
 
 \section{Machine learning fundamentals}
+
+Our goal is to optimize hyperparameters, but before we introduce the main topic, we need to specify the context --- machine learning. Even though we suspect that most readers are already familiar with machine learning, we include it for completeness and to introduce the notation. We encourage readers familiar with machine learning, and with deep learning in particular, to skip this section. First, we will introduce the task of supervised machine learning, how the dataset is commonly split, and the function that is optimized in order to train the model. Then we will briefly introduce deep learning and a couple of frequently used architectures. Finally, we will end with an overview of the optimization algorithm behind neural networks. We hope to give the reader some intuition behind the optimization problem of hyperparameter search without going into unnecessary detail.
+
 % In general, machine learning is the ability of an AI system to acquire its own knowledge by extracting patterns from raw data. In the last decade, one particular class of machine learning algorithms took over --- deep learning.
 
 %Before we get to hyperparameters and optimization, we will revisit and define key concepts from machine learning so that it is clear what machine learning models we use and why.
 
 
 % Briefly revisit deep neural networks and ML
-Our goal is to optimize hyperparameters. Before we introduce the main topic, we need to specify the context. We are interested in supervised machine learning methods. Let $\mathcal{D}$ be a labeled dataset, consisting of examples generated independently from a data-generating distribution. Each example $(x^{(i)}, \  y^{i})$ consist of a feature vector $x^{(i)}\in \mathcal{X}$ and its label $y^{(i)}\in \mathcal{Y}$. Depending on what we want to predict, we distinguish classification and regression. In classification, the labels are finite-valued, while in regression the labels are real numbers. The goal of supervised learning is to train a model using the examples from the dataset $\mathcal{D}$ so that it generalizes well to data from the data-generating distribution.  % Generalization error
 
-We train machine learning algorithms by minimizing the loss function on the training data. Two loss functions are most commonly used. For regression, the mean square error of $N$ examples is computed as $$ MSE=\frac{1}{N} \sum_{i=1}^{N} (f(x^{(i)});\theta )-y^{(i)})^2$$
+% Machine learning applications - should I introduce machine learning in general? I think everyone has to know
+
+\subsection{Supervised machine learning}
+% Dataset, labeled examples, classification vs regression
+Let $\mathcal{D}$ be a labeled dataset, consisting of examples generated independently from a data-generating distribution. Each example $(x^{(i)}, \  y^{(i)})$ consist of a feature vector $x^{(i)}\in \mathcal{X}$ and its label $y^{(i)}\in \mathcal{Y}$. Depending on the labels, we distinguish classification and regression. In classification, the labels are finite-valued, while in regression the labels are real numbers. The goal of supervised learning is to train a model using the examples from the dataset $\mathcal{D}$ so that it generalizes well to data from the data-generating distribution. Simply put, we want the model to correctly predict the labels on unseen data. We assume the unseen data come from the same data-generating distribution so that the model can use the learned patterns for the task.  % Generalization error
+
+% Generalization, train, val, test split
+Since the goal is for the model to generalize well, we need to estimate the generalization error in the training and model selection process on unseen data. It is a best practice to split the dataset into $\mathcal{D}_{train}, \  \mathcal{D}_{val}, \mathcal{D}_{test}$. We use $\mathcal{D}_{train}$ for the training of the model, $\mathcal{D}_{val}$ for the estimate of the generalization error during development, and $\mathcal{D}_{test}$ for the final evaluation. A separate test set is needed for the final evaluation because the validation set has already been used to choose the best model, which means there is a bias in the estimate. As we will see, using a hyperparameter optimization tool introduces yet another optimization layer, meaning we should do a similar split even for the outer optimization of hyperparameters.
 
 
-In the case of classification, we use the cross-entropy loss that measures the difference between two probability distributions. Let $C$ be the number of classification classes and let $y^{(i)}$ be a distribution over all classes, which will often be just a one-hot encoding of the target class. Let the predictions of the model also form a distribution over the classes. Then the loss is calculated as follows when using mean reduction across examples $$CE=-\frac{1}{N} \sum_{i=1}^{N} \sum_{c=1}^{C} y^{(i)}_c log(f(x^{(i)});\theta )_c) $$
+% Training - minimizing the loss function
+We train machine learning algorithms by minimizing the loss function on the training data. Two loss functions are used most commonly. For regression, the mean square error of $N$ examples is computed as $$ MSE=\frac{1}{N} \sum_{i=1}^{N} (f(x^{(i)});\theta )-y^{(i)})^2.$$
 
-For neural networks, the loss function is minimized using the gradient descent algorithm. Given a loss function $L(\theta)$ that we want to minimize with respect to the model parameters, or weights, the gradient descent optimizes the function by repeatedly calculating the gradient $\nabla_\theta L(\theta)$ and performing an update to the weights in the opposite direction: $$ \theta \leftarrow \theta - \alpha \nabla_\theta L(\theta)$$
+% Cross entropy loss, MSE loss
+In the case of classification, we use the cross-entropy loss that measures the difference between two probability distributions. Let $C$ be the number of classification classes and let $y^{(i)}$ be a distribution over all classes, which will often be just a one-hot encoding of the target class. Let the predictions of the model also form a distribution over the classes. Then the loss is calculated as follows when using mean reduction across examples $$CE=-\frac{1}{N} \sum_{i=1}^{N} \sum_{c=1}^{C} y^{(i)}_c log(f(x^{(i)});\theta )_c\, .$$
 
-Since the goal is for the model to generalize well, we need to estimate the generalization error during training. That is why we estimate it on data not used during training. We also want to verify the performance of the final model after we choose one. Not to introduce a bias to the estimate, this should also be done on unseen data. That is why it is a best practice to split the dataset into $\mathcal{D}_{train}, \  \mathcal{D}_{val}, \mathcal{D}_{test}$. As we will see, using a hyperparameter optimization tool introduces yet another optimization layer, meaning we should do a similar split even for the outer optimization of hyperparameters.
+% More about the loss, metrics
+The loss functions depend mostly on the task, not on the specific machine learning model. The training algorithm that optimizes the loss function depends on the model though, so we will revisit optimization later. Even though the training is done exclusively with the loss function, we do not need to use the loss function for the evaluation of the model. Oftentimes a better metric, such as classification accuracy, is used instead. That holds even for hyperparameter optimization; we can optimize hyperparameters for any metric.
 
 % We focus on hyperparameter optimization of neural networks since neural networks are widely used today and have many hyperparameters.
-A neural network describes a computation. The basic unit is called a node and the nodes are arranged in an acyclic graph. Training of the network can be split into two parts --- the forward pass and the backward pass. In the forward pass, the network produces an output from the input examples by iteratively going through the graph in a topological order. Then the loss is calculated. The gradients are computed using the backpropagation algorithm, which iterates through the nodes in reverse order and calculates partial derivatives of the loss with respect to the individual weights.
+\subsection{Deep learning}
+% Deep learning, perceptrons
+Deep learning is the subset of machine learning methods based on neural networks. The ``deep'' in deep learning refers to the use of multiple layers in the network. A neural network describes a computation. The basic unit is called a node and the nodes are arranged in an acyclic graph. Nodes generally represent some operation, while edges can be annotated with parameters for the operation. We call the parameters or neural network weights. A simple example of a neural network is the perceptron (see Figure~\ref{fig:perceptron}). The output value is computed by summing the values of inputs multiplied by the corresponding weights, adding a bias of the node, and passing the weighted sum through an activation function $a$:
+$$ y = a(\sum_j x_jw_j + b).$$
 
+\begin{figure}
+\centering
+\begin{tikzpicture}[
+    neuron/.style={circle, draw, minimum size=9mm, inner sep=0pt},
+    input/.style={circle, draw, minimum size=9mm, fill=blue!30, inner sep=0pt},
+    output/.style={diamond, aspect=2, draw, minimum size=9mm, fill=green!30, inner sep=0pt},
+    sum/.style={circle, draw, minimum size=9mm, fill=purple!30, inner sep=0pt},
+    activation/.style={circle, draw, minimum size=9mm, fill=red!30, inner sep=0pt},
+    >=stealth
+]
+
+% Inputs
+\node[input] (x1) {$x_1$};
+\node[input, below=0.4cm of x1] (x2) {$x_2$};
+\node[input, below=0.4cm of x2] (x3) {$x_3$};
+\node[input, below=0.4cm of x3] (x4) {$x_4$};
+
+% Weighted sum node
+\node[sum, right=of x2, xshift=1.5cm, yshift=-0.4cm] (sum) {$\sum$};
+
+% Activation function node
+\node[activation, right=1.5cm of sum] (activation) {};
+
+% Output node
+\node[output, right=1.5cm of activation] (output) {$y$};
+
+% Connections
+\draw[->] (x1) -- node[midway, above, xshift=-0.1cm] {$w_1$} (sum);
+\draw[->] (x2) -- node[midway, above, xshift=-0.1cm] {$w_2$} (sum);
+\draw[->] (x3) -- node[midway, above, xshift=-0.1cm] {$w_3$} (sum);
+\draw[->] (x4) -- node[midway, above, xshift=-0.1cm] {$w_4$} (sum);
+\draw[->] (sum) -- (activation);
+\draw[->] (activation) -- (output);
+
+% Labels
+\node[above=0.2cm of x1] {Inputs};
+\node[above=0.5cm of sum] {Weighted Sum};
+\node[above=0.2cm of activation] {Activation Function};
+\node[above=0.5cm of output] {Output};
+
+\end{tikzpicture}
+
+\caption{Perceptron neural network}
+\label{fig:perceptron}
+
+\end{figure}
+
+% MLP
+
+% Multi-layer perceptron
+We can reuse this basic building block (weighted sum with bias followed by an activation function) and combine it to form a larger network. If we stack several such blocks, or nodes,  on top of each other, we get a \textit{fully connected layer}. It gets its name from the fact that each node in the layer is connected to every input node. If we connect another fully connected layer to the outputs of the first, we get an architecture called a \textit{multilayer perceptron} (MLP). The multilayer perceptron is a good choice for tabular datasets where the features are structured as rows and columns and there are non-linear relationships between the features. The hyperparameters of MLP could be the number of hidden layers, the sizes of the individual layers, or the activation function of the hidden units.
+
+% CNN
+For image data or any other data with some structure, a \textit{convolutional neural network} (CNN) might be a good option. The basic building block of CNNs is a convolution layer. We can imagine a convolution layer as a sliding window, or a tile, that locally weights and sums the data, as illustrated in Figure~\ref{fig:conv}. The parameters of the tile, its size and the weights, are specified by the \textit{kernel}. There can be several kernels of the same size stacked on top of each other, each producing one \textit{channel} of the output. The power of CNNs comes from the fact that they learn the features gradually and combine lower-level features as each kernel processes only a small local neighborhood at a time, into higher-level features as the context window gets wider. Suppose we have two-dimensional data. Formally, the kernel $K$ computes the following function on input $I$ with $c$ channels to get an output value at coordinates $i,j$:
+\[
+ (K \ast I)_{i,j} =\sum_{m,n,c} I_{i+m,j+n,c}K_{m,n,c}\,.
+\]
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.25]{img/convolution.png}
+    \caption{An example of a 2-D convolution. (Source: Figure 9.1 of ``Deep Learning'' book~\cite{Goodfellow-et-al-2016})}
+    \label{fig:conv}
+\end{figure}
+
+% RNN
+\xxx{TODO RNNs.} The recurrent neural network is designed to handle sequential or time series data.
+
+% Transformers
+
+\subsection{Training of neural networks}
+% Training of neural networks.
+Training of the network can be split into two parts --- the forward pass and the backward pass. These two operations are repeated over and over again until some stopping criterion is met. We call one iteration an epoch. In an epoch, the training algorithm iterates through all examples in the training set, usually grouped in batches. In the forward pass, the network produces an output from the input examples and weights by iteratively going through the graph in a topological order. The loss is calculated from the output of the network and true labels. The gradients of the loss function are computed using the backpropagation algorithm, which iterates through the nodes in reverse order and calculates partial derivatives of the loss with respect to the individual weights.
+
+% Gradient descent algorithm
+After the gradients are computed, the loss function is minimized using the gradient descent algorithm. Given a loss function $L(\theta)$ that we want to minimize with respect to the weights, the gradient descent optimizes the function by taking a step in the opposite direction of gradient $\nabla_\theta L(\theta)$, which decreases the loss. That is, the weights are updated using a learning rate hyperparameter $\alpha$: $$ \theta \leftarrow \theta - \alpha \nabla_\theta L(\theta).$$
+
+For this thesis, it is enough to know there is a gradient descent algorithm optimizing the loss and this algorithm and its more advanced derivatives, such as Adam, comes with some hyperparameters. These usually include a learning rate, a \textit{momentum}, or a \textit{decay schedule}, if we want to gradually decrease the learning rate. Later, we will also use the fact that training of neural networks is an iterative process, and it usually takes at least tens of epochs until the network starts to converge.
+
+\subsection{Regularization}
+% What is regularization
+The last concept that is useful to know about for hyperparameter optimization is \textit{regularization}. It is a technique to prevent \textit{overfitting}, which is a situation when the model learns too much from the training set and the validation loss starts increasing because the model learns specific patterns present only in the training dataset. Remember we want the model to generalize well. Regularization is especially important for smaller datasets. There are many regularization techniques and most of them come with some hyperparameter. We call them regularization hyperparameters.
+
+% Examples of regularization
+One way to reduce overfitting is to use a \textit{weight decay}, which multiplies the weights by some constant smaller than one and usually close to zero, which we set as a hyperparameter. The intuition behind weight decay is that the network forgets a little each time the weights are updated, so it can learn only general patterns that occur often. Another common regularization technique is the \textit{dropout}. In dropout, some nodes are deactivated during a forward pass with the dropout rate (probability), which is a hyperparameter. The network is forced to work reasonably well with only a subset of nodes, which should also force it to learn general features.
 
 
 \section{Hyperparameter optimization}
@@ -63,6 +163,14 @@ Before we get to algorithmic approaches, let us consider manual hyperparameter t
 \paragraph{Grid Search} Grid search performs an exhaustive search through a manually specified subset of the hyperparameter space. Grid search is best used when the number of hyperparameters is small, or the function evaluation is not that expensive. Its biggest drawback is that the number of configurations to evaluate grows exponentially with the number of hyperparameters. Therefore, it is best to determine which hyperparameters are the most important and limit the search only to this subset. If we did not do this, we would waste a lot of computational power on hyperparameter combinations, where only the unimportant hyperparameter changes, but the important ones stay the same. But how do we determine which hyperparameters are important and we need to tune them together? On the other hand, grid search is easily parallelizable. That is an enormous advantage since in real-world scenarios, it is not uncommon to have access to a computing cluster.
 
 \paragraph{Random Search} Random search is often used in the HPO literature as the baseline method for more advanced algorithms. In real-world optimization problems, random search often works better than grid search. Bergstra et al.~\cite{bergstra2012random} compared random search to grid search and found that randomly chosen trials are more efficient for hyperparameter optimization than trials on a grid. It is possible to encounter a random search with 2X-budget as a baseline in some research papers. It is just a random search with two times the budget of other methods in comparison. As Li et al.~\cite{li2018hyperband} show, 2X-budget random search provides a strong baseline.
+% TODO: Reference the figure somewhere.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{img/grid_vs_rs.pdf}
+    \caption{A visual comparison of Grid Search versus Random Search. Suppose that we optimize a function with two parameters and the function is the sum of the functions defined for each parameter. The best configuration found after nine trials is highlighted in red. If one of the parameters is not important, grid search wastes resources by repeatedly evaluating similar configurations. }
+    \label{fig:grid}
+\end{figure}
 
 \paragraph{Quasi-random search} If our budget is low then quasi-random search might be the better option. It works by generating a low-discrepancy sequence. Intuitively, a low-discrepancy sequence covers the whole domain evenly. Therefore, the search space is better covered even with a small number of samples. In the Deep learning tuning playbook, the authors recommend using quasi-random search over grid search and random search for the initial exploration of the hyperparameter space.
 
@@ -364,7 +472,7 @@ In a TPE algorithm, two kernel density estimators are used. Keeping the notation
 \begin{figure}
     \centering
     \includegraphics[scale=0.40]{img/tpe-conceptual.pdf}
-    \caption{Example of the TPE algorithm. We are searching for the minimum of the target (black) function. The observations are split into $D^{(l)}$ and $D^{(g)}$ by the green line on the objective value of observations. For each group, a kernel density estimation is calculated. The acquisition function is derived from the densities and the algorithm chooses the next point to sample by finding the maximum (Figure 1 in Watanabe~\cite{watanabe2023tree}, with permission).}
+    \caption{Example of the TPE algorithm. We are searching for the minimum of the target (black) function. The observations are split into $D^{(l)}$ and $D^{(g)}$ by the green line on the objective value of observations. For each group, a kernel density estimation is calculated. The acquisition function is derived from the densities and the algorithm chooses the next point to sample by finding the maximum (Source: Figure 1 from Watanabe~\cite{watanabe2023tree}).}
     \label{fig:tpe}
 \end{figure}
 
@@ -400,68 +508,3 @@ Random forest~\cite{breiman2001random} is a machine learning method for classifi
 
 Prediction for a new data point is the empirical mean of individual trees' predictions. A prediction of a single tree is usually the mean of the data points in the leaf that corresponds to the input configuration, but the authors implement an option for a user-defined prediction function as well. The algorithm also calculates the empirical variance from the predictions of the individual trees. To select the next configuration to evaluate, the expected improvement acquisition function is maximized. SMAC solves the maximization problem by a multi-start local search. According to the authors, this method provides better results than random sampling.
 % Could write a little more about the local search.
-
-
-
-\section{Multifidelity techniques}
-Even though Bayesian optimization techniques are very sample-efficient, our budget might not allow for enough full training runs to find a good hyperparameter configuration. One option for dealing with such strict budget constraints is the multifidelity approach. A new hyperparameter $\lambda_{fid}$ is introduced that allows us to trade off runtime for the reliability of the information we gain from evaluation. Low fidelity values mean that the evaluations are cheap but unreliable. Fidelity close to the upper limit implies that the returned values are close to true objective values achievable with a full budget. What we are most interested in is finding $\lambda_{fid}$ so that we use as few resources as possible and the rank correlation is mostly preserved between the models trained with low fidelity and the fully trained models. In other words, we want the low-fidelity models to reliably predict the ranking of the fully-trained models. In general, multifidelity HPO algorithms will start by evaluating cheap HPCs with low $\lambda_{fid}$ values and then using the remaining budget to exploit the gathered data and train the most promising models with high $\lambda_{fid}$.
-
-
-\subsection{Early stopping}
-% Freeze-thaw paper - extrapolating of learning curves with new kernel (infinite mixture of exponentially decaying basis functions - TODO), Bayesian optimization,
-% Authors state there is possible extension to more flexible priors such as spatio-temporal GP with separable covariance
-The simplest way to reduce the runtime of an algorithm is to stop the computation before it finishes. Swersky et al.~\cite{swersky2014freeze} noticed that human experts have the ability to assess whether the model will eventually be useful early in the training and developed a method to leverage early stopping. They refer to this method as freeze-thaw Bayesian optimization, because it allows for pausing or aborting the training procedure when the model does not seem promising and resuming the training later if needed. This is combined with the Bayesian optimization framework for hyperparameter search and the authors propose a technique for estimating when to pause and resume training. The algorithm uses an information-theoretic criterion to determine which models to thaw.
-
-Freeze-thaw method relies on the assumption that for many models the training loss roughly follows an exponential decay. Swersky et al.~\cite{swersky2014freeze} developed a new kernel to serve as a prior characterizing the learning curves. This kernel is then used to forecast the final training loss and to provide these estimates to the Bayesian optimization. The kernel was successfully applied to matrix factorization and other problems, but it did not describe the learning curves of deep neural networks well. The same idea was explored by Domhan et al.~\cite{domhan2015speeding}, but with a focus on deep neural networks. They developed a technique for extrapolation of learning curves based on a probabilistic model and used the model to terminate a training run when its performance is most likely going to be worse than the performance of the best model encountered so far. They modeled learning curves using eleven different model families and concluded that even though all of these models capture certain aspects of learning curves, no single model can describe all learning curves by itself. Therefore, they combined the models in a probabilistic framework. Their approach is agnostic to the hyperparameter optimizer and sped up the hyperparameter optimization approximately by a factor of two.
-
-\subsubsection{Hyperband}
-The Hyperband algorithm, developed by Li et al.~\cite{li2018hyperband}, offers a completely different approach to dynamic resource allocation. It is a general approach with only a few assumptions. Authors originally developed it as an extension to speed up random search through early stopping.
-
-The Hyperband internally uses the Successive Halving algorithm. Successive Halving works by uniformly allocating a budget to a set of hyperparameter configurations, then it throws out the worst half, and this process repeats until one configuration remains. The algorithm allocates exponentially more resources to more promising configurations, which usually speeds up the search considerably. In theory, the algorithm might never converge. For example, if the best configurations perform poorly in the beginning, then the algorithm discards them before they have the opportunity to converge. A practical downside of the algorithm is that we have to choose the number of configurations $n$ in the first round manually. Therefore, we have to choose between large $n$, which means training a lot of hyperparameter configurations with a smaller training time and small $n$, resulting in the exploration of fewer hyperparameter configurations that are trained for longer on average.
-
-The optimal choice of $n$ depends mainly on how hard is it to distinguish similarly performing hyperparameter configurations from each other. We know that the intermediate losses are noisy, so we have to account for the uncertainty, which the authors of the paper call the envelope, as well. Ideally, we would wait until the envelopes do not overlap. We can observe that more resources are needed if the envelopes are wider, or if the terminal losses are closer together. The choice of $n$ also places an upper bound on the execution time of a single configuration. The more configurations we want to evaluate, the less budget is allocated to the best configurations. Therefore, there might not be enough time for them to converge, and we might select a worse hyperparameter configuration as a result.
-% TODO: Is the description of Hyperband correct - HB brackets - how many Successive Halving is run inside of one HB bracket?
-
-The Hyperband addresses the problem of selecting the optimal value of $n$ by considering several possible values of $n$ for a fixed budget $B$. Specifically, a successive halving algorithm is repeatedly called with different values of $n$. A larger value of $n$ corresponds to more aggressive early-stopping since the same amount of computational resources is distributed between more hyperparameter configurations. Furthermore, by resetting the search, Hyperband is hedging against bad instantiations of the randomly sampled configurations and their initialization.
-
-% BOHB - their desiderata are nice, might state them in the introduction
-The drawback of Hyperband is that it does not scale well into larger budgets and random search starts to close the gap. Falkner et al.~\cite{falkner2018bohb} noticed its deficiency and proposed a new algorithm BOHB to fix this. They combine Hyperband with Bayesian optimization in a way that their weaknesses are compensated by the other algorithm. Bayesian optimization needs some initial trials to gather enough data for the internal models, so it performs like a random search for a while. This is where the strong low-budget performance of Hyperband is used. On the other hand, well-fitted Bayesian optimization models provide better suggestions later in the tuning process.
-
-% DEHB ~\cite{awad2021dehb}
-Another algorithm extending the Hyperband is the DEHB developed by Awad et al.~\cite{awad2021dehb}, which uses an evolutionary optimization method instead of Bayesian optimization. More specifically, the DE stands for Differential Evolution. The evolutionary approach provides some benefits over Bayesian optimization, such as better handling of discrete dimensions, better scaling into high dimensions, and conceptual simplicity enabling easy implementation.
-
-% TODO: Explain DEHB
-
-The authors provided a lot of experiments in their paper, comparing DEHB to BOHB, random search, and other optimizers such as SMAC or Bayesian optimization with TPE surrogate. The benchmarks include NAS-Bench-101, NAS-HPO-Bench, or Reinforcement Learning Cartpole environment. The DEHB is much more efficient on some benchmarks while performing similarly to the BOHB, the next-best HPO optimizer in the experiments. The DEHB has very strong performance early with a low budget, and the performance does not fall off even for large budgets, which it often does for the BOHB.
-
-
-\subsection{Subsampling}
-The second possibility is to start the exploration with a fraction of the training data. The intuition behind this approach is that even a small subset of the training data will contain most of the information about the structure of the dataset for the model to learn. That should be enough to approximate the performance on the full dataset while training faster.
-
-% FABOLAS
-Klein et al.~\cite{klein2017fast} developed a Bayesian optimization algorithm FABOLAS. The main idea of the algorithm is to introduce subset size as an additional parameter for the Gaussian process to optimize using the acquisition function information gain per unit cost. The Gaussian process then learns to approximate the correlations between different subset size values, which allows it to efficiently use smaller subsets to accelerate the hyperparameter search. The authors performed experiments on the CIFAR10 and SVHN datasets with convolutional neural networks. FABOLAS found a good hyperparameter configuration more than 10 times faster than \xxx{MTBO} and the difference was even larger in comparison to the Hyperband. It is worth noting that after a good-performing model was found by all algorithms, the differences in test error were only minor.
-
-% Accelerating hyperparameter optimization of a deep neural network via progressive multifidelity evaluation~\cite{zhu2020accelerating}.
-A similar approach to BOHB was implemented by G. Zhu and R. Zhu~\cite{zhu2020accelerating}. They combine successive halving with progressively increasing dataset size and the number of training epochs. This way, the algorithm can explore even more configurations early on. The algorithm uses a Bayesian optimization with a surrogate model to suggest configurations for the successive halving, but the authors do not mention which surrogate model they used. To support the idea of using only a subset of the training data, the authors provide an experiment on the MNIST dataset, where they compared a LeNet trained on a full dataset versus trained only on 10\% of the dataset. The results showed a difference of a few percentage points. The authors noted, that the main difference in chosen hyperparameters was in regularization hyperparameters. That is expected since training on a smaller dataset should require stronger regularization. Finally, they compared their algorithm to BOHB on CIFAR10 and CIFAR100 datasets. In both cases the new algorithm outperformed BOHB, especially will fewer resources used.
-
-
-% Auto-pytorch: multifidelity metalearning for efficient and robust autodl~\cite{zimmer2021auto}. - Uses multi-fidelity, but it's more focused on NAS
-
-A method called DyHPO that is based on a novel Gaussian process kernel was developed by Wistuba et al.~\cite{wistuba2022supervising}. They reviewed existing multifidielity approaches, including the Hyperband, BOHB, and DEHB. They have stated a conjecture that these gray-box methods suffer from a major issue --- low-budget performances are not always a good indicator for the full budget performances. The authors argue as an example that a properly regularized network converges slower in the first few epochs, but typically outperforms a non-regularized network after full convergence. This problem is addressed by a GP kernel capable of capturing the similarity of two hyperparameter configurations even if the configurations are evaluated on different budgets.
-
-Another area where DyHPO should gain efficiency compared to approaches like Hyperband is that instead of pre-allocating the budget, DyHPO dynamically adapts the allocation of budgets after every HPO step. Therefore, DyHPO invests only a small budget on unpromising configurations. In the provided experiments, DyHPO showed statistically significant efficiency gains compared to other hyperparameter optimization methods such as DEHB, BOHB, and Hyperband.
-
-
-
-Some researchers explored the idea of a two-step hyperparameter optimization method --- first, optimize hyperparameters on a small subset of data, and then optimize the best-performing models on the full dataset. This approach was recently studied by Yu et al.~\cite{yu2024two} on a large dataset for aerosol activation emulator, containing almost 20 million examples. Their experiment is interesting because they use random search as an optimization algorithm and focus just on the dataset sizes, trying subsets as small as 0.00025 of the whole dataset (5000 examples). They have found that it does make sense to optimize hyperparameters on a small dataset first and that a lot of good models from the low-fidelity round perform well even on the full dataset. They were able to speed up the search 135 times while using just the simple and parallel random search, albeit on a single and very specific task.
-
-
-
-\section{Benchmarks}
-\xxx{Probably just include the comparisons in the text and delete this section.}
-In this section, we review the literature comparing and benchmarking the approaches, which should further clarify which algorithm and when to use.
-
-
-Li et al.~\cite{li2018hyperband} compare the Hyperband algorithm with three Bayesian optimization algorithms (SMAC, TPE, Spearmint) on CIFAR-10, rotated MNIST and SVHN datasets. They also include random search and 2x-random search as a baseline. The Hyperband consistently outperformed other algorithms at the beginning of the search. As the search progressed to spending the whole budget, the differences were only small between the methods.
-
-FABOLAS~\cite{klein2017fast} - FABOLAS>MTBO>Hyperband.

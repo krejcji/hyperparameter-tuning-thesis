@@ -1,174 +1,15 @@
-\chapter{Results and discussion}
+\chapter{Experimental results and discussion}
+\section{Methodology}
+
+\subsection{Algorithms}
+
+\subsection{Datasets and models}
+
+\subsection{Evaluation Metric}
+
+\subsection{Experimental Setup}
+
 % I could split this chapter into two.
-
-\section{Tabulated benchmarks}
-\xxx{Should I include tabulated benchmarks? I think it is a good starting point for performance evaluation of HPO algorithms, most of the literature uses them as a standardized way of comparison. I would briefly describe the benchmark and include one or two plots where I could analyze how the algorithms behave, the results don't seem to have an obvious conclusion.}
-
-\xxx{The text is written as notes for myself at this point.}
-\begin{table}[H]
-    \centering
-\begin{tabular}{ccccc}
-    \hline
-    \textbf{Benchmark} & \textbf{Epochs} & \textbf{1x full eval (s)} & \textbf{Max t (s)} & \textbf{Full evals} \\ \hline
-    lc-Fashion-MNIST & 50 & 1200 & 7200 & 6 \\ \hline
-    lc-airlines & 50  & 1108 & 7200  & 6.5 \\ \hline
-    lc-albert  & 50  & 934  & 7200 & 7.7 \\ \hline
-    lc-covertype  & 50  & 650  & 7200  & 11  \\ \hline
-    lc-christine  & 50  & 2376  & 7200  & 3  \\ \hline
-    nas-cifar100 & 200 & 3649  & 21600  & 5.9 \\ \hline
-    nas-cifar10  & 200 & 3649  & 18000 & 4.9 \\ \hline
-    nas-ImageNet & 200 & 10450 & 28800 & 2.7 \\ \hline
-    fc-protein & 100 & 254  & 3600  & 14.1 \\ \hline
-    fc-naval  & 100  & 68  & 3600  & 53 \\ \hline
-    fc-parkinsons  & 100  & 33.9 & 3600  & 109 \\ \hline
-    fc-slice  & 100  & 354 & 3600  & 10 \\ \hline
-\end{tabular}
-\caption{Summary of the tabular benchmarks.}
-\end{table}
-
-
-In this table, we compare some basic attributes of the benchmarks. How many epochs is allocated to fully train a model, how much time it takes to fully train a model, how much time the benchmark runs for and how many full evaluations is it possible to do in that time (with random search). For model-based methods, training of the HPO model takes from the total time
-
-\subsection{NAS-201}
-NAS-Bench-201 contains 15625 multi-fidelity configurations of computer vision architectures evaluated on 3 datasets. The search space is defined by cell-based structure -- the cell operations are optimized and the cell is then used as a building block for the network. A cell is a DAG with N nodes. There are 7 nodes in each cell, including an input and an output node. 5 predefined operations (3x3 Conv, 1x1 Conv, AvgPool, MaxPool, skip connection). The total number of possible architectures in the search space is $5^6=15625$ because each edge can be one of 5 operations and there are 6 edges in the DAG. % ??
-
-Because we are only choosing the connections between the intermediate nodes out of the 5 possible values, The search space is a composition of categorical variables, which means that there is not much structure to exploit by Gaussian Processes. On the other hand, the early stopping could be decisive.
-% NAS-Bench-201: Extending the scope of reproducible neural architecture search. Dong, X. and Yang, Y. 2020.
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-nas201-cifar10.pdf}
-    \caption{nas201-cifar10}
-    %\label{}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-nas201-cifar100.pdf}
-    \caption{nas201-cifar100}
-    %\label{}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-nas201-ImageNet16-120.pdf}
-    \caption{nas201-ImageNet16-120}
-    %\label{}
-\end{figure}
-
-The default settings of NAS-Bench are very constrained. For CIFAR100, the wall-time limit of 21600 seconds (5 hours) is enough for 4-6 full evaluations depending on the HPO algorithm. The Random search is initially flat, because the first combination is always sampled by the midpoint rule, and therefore is deterministic \xxx{even though we have just categorical variables and midpoint rule doesn't make sense?}. The cliffs for BOHB and DEHB mark an increase of the training budget. For the first 5000 seconds, they are allowed to train the network for one epoch only, then it increases to 3, 9, 81, and finally to 200, which is the maximum. Therefore, the comparison is not fair for this scheduling and they should be compared only at one chosen budget, for which the brackets parameter is well chosen.
-
-
-
-\subsection{LCBench}
-LCBench is a benchmark suite for studying the performance of Neural Architecture Search algorithms. The LC in LCBench stands for learning curve, LCBench tracks the performance of architectures throughout the search process. It contains 16 datasets from various domains.
-”lcbench”: 2000 multi-fidelity Pytorch model configurations evaluated on many datasets.
-
-LCBench provides training data for 2000 different configurations across different architectures and hyperparameters, each evaluated on 35 datasets over 50 epochs. Training, test, and validation loss are tracked, as well as accuracies. The following hyperparameters (4 float, 3 integer) were optimized:
-
-\begin{table}
-    \centering
-\begin{tabular}{cc}
-    \textbf{Hyperparameter} & \textbf{Values} \\ \midrule
-    Batch size & $\{16, 512\}$ \\
-    Learning rate & $\{1\mathrm{e}{-4}, 1\mathrm{e}{-1}\}$ \\
-    Momentum & $\{0.1, 0.99\}$ \\
-    Weight decay & $\{1\mathrm{e}{-5}, 1\mathrm{e}{-1}\}$ \\
-    Layers & $\{1, 5\}$ \\
-    Max units/layer & $\{64, 1024\}$ \\
-    Dropout & $\{0.0, 1.0\}$
-    \end{tabular}
-\end{table}
-
-All runs feature funnel-shaped MLP nets and use SGD with cosine
-%Reference: Auto-PyTorch: Multi-Fidelity MetaLearning for Efficient and Robust AutoDL. Lucas Zimmer, Marius Lindauer, Frank Hutter. 2020.
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-lcbench-airlines.pdf}
-    \caption{LCBench-airlines}
-    %\label{}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-lcbench-albert.pdf}
-    \caption{LCBench-albert}
-    %\label{}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-lcbench-Fashion-MNIST.pdf}
-    \caption{LCBench-Fashion-MNIST}
-    %\label{}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-lcbench-covertype.pdf}
-    \caption{LCBench - covertype}
-    %\label{}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-lcbench-christine.pdf}
-    \caption{LCBench-christine}
-    %\label{}
-\end{figure}
-
-LCBench has the max\_wallclock\_time set to 7200 seconds, and max number of evaluations to 4000.
-
-\subsection{FCNet}
-The FCNet multi-fidelity benchmark contains 62208 configurations of MLP evaluated on 4 datasets (protein structure, slice localization, naval propulsion, parkinsons telemonitoring). The base architecture is two layer feed forward neural network followed by a linear output layer. The configuration space includes 4 architectural choices (number of units and activation functions for both layers), and 5 other hyperparameters (dropout rates per layer, batch size, initial learning rate, learning rate schedule). They discretized the search space and did an exhaustive evaluation of all reulting 62208 configurations. Each configuration was trained 4 times. Full learning curves are provided as well.
-
-\begin{table}
-    \centering
-\begin{tabular}{cc}
-    \textbf{Hyperparameter} & \textbf{Values} \\ \midrule
-    Learning rate & $\{0.0005, 0.001, 0.005, 0.01, 0.05, 0.1\}$ \\
-    Batch size & $\{8, 16, 32, 64\}$ \\
-    LR schedule & $\{$cosine, fix $\}$ \\
-    Activation L1 & $\{$relu, tanh $\}$ \\
-    Activation L2 & $\{$relu, tanh $\}$ \\
-    L1 size & $\{8, 16, 32, 64, 128, 256, 512\}$ \\
-    L2 size & $\{8, 16, 32, 64, 128, 256, 512\}$ \\
-    Dropout L1 & $\{0.0, 0.3, 0.6\}$ \\
-    Dropout L2 & $\{0.0, 0.3, 0.6\}$
-    \end{tabular}
-\end{table}
-
-
-%Tabular benchmarks for joint architecture and hyperparameter optimization. Klein, A. and Hutter, F. 2019.
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-fcnet-naval.pdf}
-    \caption{FCNet-naval}
-    %\label{}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-fcnet-protein.pdf}
-    \caption{FCNet-protein}
-    %\label{}
-\end{figure}
-
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-fcnet-parkinsons.pdf}
-    \caption{FCNet-parkinsons}
-    %\label{}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[scale=0.54]{../notebooks/img/baselines-2-fcnet-slice.pdf}
-    \caption{FCNet-slice}
-    %\label{}
-\end{figure}
-
-FCNet has default max\_wallclock\_time set to 3600. For FCNet-Naval, this translates to approximately 51 fully trained neural networks, since a full run of 100 epochs takes approximately 70 seconds.  We can see that the midpoint rule of random search works well here. The brackets for DEHB and BOHB are again set incorrectly, and the algorithm spends too much time in low fidelity.
 
 \section{Real benchmarks}
 \subsection{CIFAR10 - demo}
@@ -217,5 +58,6 @@ The following plots are evaluated after 350 training epochs \xxx{because that is
 %     %\label{}
 % \end{figure}
 \subsection{SVHN}
+
 
 \section{Discussion}

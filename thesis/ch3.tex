@@ -1,11 +1,27 @@
 \chapter{Experimental results and discussion}
 \section{Methodology}
 
+\subsection{Evaluation}
+% I want to write what I chose to do, and then reason and
+
+% What resource are we using
+First, we need to specify how to measure the used resources and limit the total budget. We can measure either the wall-clock time, or the number of epochs. Measuring function evaluations does not make sense because of multifidelity evaluations --- each evaluation could be at a different budget. The wall-clock time is the quantity that matters in real-world applications, but the number of epochs is easier to work with, especially when the experiments are run at a heterogeneous computer cluster. It comes at the cost of neglecting the overhead of the hyperparameter optimization algorithms and gives a small advantage to the more computationally heavy algorithms. On the other hand, it allows for a direct comparison of sample efficiency and the overhead of a hyperparameter optimization algorithm is negligible in most scenarios encountered when tuning hyperparameters of deep neural networks, as we will show.
+
+% Single dataset
+We chose to evaluate the performance at 20 full function evaluations and 10 full evaluations. We use the Kruskal test to determine whether there is any difference at all, and then we use the Mann-Whitney rank sum test to determine pairwise differences.
+
+% Multiple dataset
+We also want to compare the algorithm aggregated over multiple datasets. We use the Friedmann test and the Wilcoxon signed-rank test to determine which algorithms perform statistically differently on aggregated results from more datasets. We take a mean value of the repeated runs with different seeds to get a more reliable estimate, and we use this aggregated value for the post-hoc analysis.
+
 \subsection{Algorithms}
 
-\subsection{Datasets and models}
+Random Search as a baseline. ASHA as a model-less baseline. BOHB and DEHB for Hyperband synchronous algorithms. MOBSTER and Hyper-Tune for model-based asynchronous algorithms. DyHPO as the most advanced algorithm \xxx{is it okay with normal GP model, even without the deep kernel?}.
 
-\subsection{Evaluation Metric}
+\subsection{Datasets and models}
+We will run the tests on the chosen tabular benchmarks first. For real-world examples, we can compare the algorithms on image data (CIFAR10, SVHN) and with a simple CNN model, or xResNet model.
+
+We also tested the tuning algorithms on a medical dataset PTB-XL. PTB-XL is a collection of 21837 clinical 12-lead ECGs of 10 second length annotated by up to two cardiologists with ECG statements. In the multilabel classification task, the goal is to assign 1 or more of the 5 diagnostic superclasses. We can perform an experiment using a LSTM RNN, 1d-CNN, or 1d xResNet architecture.
+
 
 \subsection{Experimental Setup}
 

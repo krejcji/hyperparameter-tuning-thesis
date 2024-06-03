@@ -5,7 +5,7 @@
 
 \section{Machine learning fundamentals}
 
-Our goal is to optimize hyperparameters, but before we introduce the main topic, we need to specify the context --- machine learning. Even though we suspect that most readers are already familiar with machine learning, we include it for completeness and to introduce the notation. We encourage readers familiar with machine learning, and with deep learning in particular, to skip this section. First, we will introduce the task of supervised machine learning, how the dataset is commonly split, and the function that is optimized in order to train the model. Then we will briefly introduce deep learning and a couple of frequently used architectures. Finally, we will end with an overview of the optimization algorithm behind neural networks. We hope to give the reader some intuition behind the optimization problem of hyperparameter search without going into unnecessary detail.
+Our goal is to optimize hyperparameters, but before we introduce the main topic, we need to specify the context --- machine learning. We include this chapter to introduce the notation and to give the readers some intuition for the machine learning algorithms and models underlying hyperparameter optimization in this thesis. Readers familiar with machine learning, and with deep learning in particular, can skip this section and start directly with hyperparameter optimization in Section~\ref{sec:hpo}. First, we will introduce the task of supervised machine learning, how the dataset is commonly split, and the function that is optimized in order to train the model. Then we will briefly introduce deep learning and a couple of frequently used architectures. Finally, we will end with an overview of the optimization algorithm behind neural networks.
 
 % In general, machine learning is the ability of an AI system to acquire its own knowledge by extracting patterns from raw data. In the last decade, one particular class of machine learning algorithms took over --- deep learning.
 
@@ -36,8 +36,11 @@ The loss functions depend mostly on the task, not on the specific machine learni
 % We focus on hyperparameter optimization of neural networks since neural networks are widely used today and have many hyperparameters.
 \subsection{Deep learning}
 % Deep learning, perceptrons
-Deep learning is the subset of machine learning methods based on neural networks. The ``deep'' in deep learning refers to the use of multiple layers in the network. A neural network describes a computation. The basic unit is called a node and the nodes are arranged in an acyclic graph. Nodes generally represent some operation, while edges can be annotated with parameters for the operation. We call the parameters or neural network weights. A simple example of a neural network is the perceptron (see Figure~\ref{fig:perceptron}). The output value is computed by summing the values of inputs multiplied by the corresponding weights, adding a bias of the node, and passing the weighted sum through an activation function $a$:
-$$ y = a(\sum_j x_jw_j + b).$$
+Deep learning is a subset of machine learning methods based on neural networks. The ``deep'' in deep learning refers to the use of multiple layers in the network. A neural network describes a computation that models complex patterns and representations in data. The basic unit is called a node and the nodes are arranged in an acyclic graph. Nodes generally represent some operation, while edges can be annotated with parameters for the operation. We call the parameters or neural network \textit{weights}. A simple example of a neural network is the perceptron (see Figure~\ref{fig:perceptron}). The output value is computed by summing the values of inputs multiplied by the corresponding weights, adding a bias of the node, and passing the weighted sum through an activation function $a$:
+\begin{equation}
+y = a(\sum_j x_jw_j + b).
+\label{eq:node}
+\end{equation}
 
 \begin{figure}
 \centering
@@ -89,10 +92,10 @@ $$ y = a(\sum_j x_jw_j + b).$$
 % MLP
 
 % Multi-layer perceptron
-We can reuse this basic building block (weighted sum with bias followed by an activation function) and combine it to form a larger network. If we stack several such blocks, or nodes,  on top of each other, we get a \textit{fully connected layer}. It gets its name from the fact that each node in the layer is connected to every input node. If we connect another fully connected layer to the outputs of the first, we get an architecture called a \textit{multilayer perceptron} (MLP). The multilayer perceptron is a good choice for tabular datasets where the features are structured as rows and columns and there are non-linear relationships between the features. The hyperparameters of MLP could be the number of hidden layers, the sizes of the individual layers, or the activation function of the hidden units.
+We can reuse the computation given by Equation~\ref{eq:node} as a building block and combine it to form a larger network. If we stack several such blocks, or nodes, on top of each other, we get a \textit{fully connected layer}. It gets its name from the fact that each node in the layer is connected to every input node. If we connect another fully connected layer to the outputs of the first, we get an architecture called a \textit{multilayer perceptron} (MLP). The multilayer perceptron is a good choice for tabular datasets where the features are structured as rows and columns and there are non-linear relationships between the features. The hyperparameters of MLP could be the number of hidden layers, the sizes of the individual layers, or the activation function of the hidden units.
 
 % CNN
-For image data or any other data with some structure, a \textit{convolutional neural network} (CNN) might be a good option. The basic building block of CNNs is a convolution layer. We can imagine a convolution layer as a sliding window, or a tile, that locally weights and sums the data, as illustrated in Figure~\ref{fig:conv}. The parameters of the tile, its size and the weights, are specified by the \textit{kernel}. There can be several kernels of the same size stacked on top of each other, each producing one \textit{channel} of the output. The power of CNNs comes from the fact that they learn the features gradually and combine lower-level features as each kernel processes only a small local neighborhood at a time, into higher-level features as the context window gets wider. Suppose we have two-dimensional data. Formally, the convolution layer computes the following function with kernel $K$ on input $I$ with $c$ channels to get an output value at coordinates $i,j$:
+For image data or any other data with some structure, a \textit{convolutional neural network} (CNN) might be a good option. The basic building block of CNNs is a convolution layer. We can imagine a convolution layer as a sliding window, or a tile, that locally weights and sums the data (see Figure~\ref{fig:conv}). The parameters of the tile, its size and the weights, are specified by the \textit{kernel}. There can be several kernels of the same size stacked on top of each other, each producing one \textit{channel} of the output. The power of CNNs comes from the fact that they learn the features gradually and combine lower-level features as each kernel processes only a small local neighborhood at a time, into higher-level features as the context window gets wider. Suppose we have two-dimensional data. Formally, the convolution layer computes the following function with kernel $K$ on input $I$ with $c$ channels to get an output value at coordinates $i,j$:
 \[
  (K \ast I)_{i,j} =\sum_{m,n,c} I_{i+m,j+n,c}K_{m,n,c}\,.
 \]
@@ -105,9 +108,55 @@ For image data or any other data with some structure, a \textit{convolutional ne
 \end{figure}
 
 % RNN
-\xxx{TODO RNNs.} The recurrent neural network is designed to handle sequential or time series data.
+The \textit{recurrent neural network} (RNN) architecture is designed to handle sequential or time series data. RNNs process the sequence one element at a time. The key is that they also maintain a hidden state, or a memory, that captures information about the sequence from element to element. This is achieved by loops in the graph --- the output of an RNN unit (sometimes called a cell) goes back to the same unit as an input with the next element of the sequence (see Figure~\ref{fig:rnn}). Because of the sequential processing, RNNs can process a sequence of an arbitrary length, reusing all the weights for every step. There are multiple options for the basic computational unit that controls how the input is processed and manages the hidden state. We will use the Long short-term memory (LSTM) unit, which is one of the more refined options. RNNs do not have many special hyperparameters. The most important ones include the number of units and the number of layers. There is also the option to make the units bidirectional, which means the sequence is processed both in a forward and a backward direction.
 
-% Transformers
+\begin{figure}
+    \centering
+\begin{tikzpicture}[
+    every node/.style={font=\sffamily},
+    cell/.style={draw, fill=purple!30, minimum size=9mm, rounded corners},
+    arrow/.style={-Stealth, thick},
+    input/.style={circle, draw, minimum size=9mm, fill=blue!30, inner sep=0pt},
+    output/.style={diamond, aspect=2, draw, minimum size=9mm, fill=green!30, inner sep=0pt},
+    skip loop/.style={to path={-- ++(0,#1) -| (\tikztotarget)}},
+    hv path/.style={to path={-| (\tikztotarget)}},
+    vh path/.style={to path={|- (\tikztotarget)}}
+]
+
+% RNN cell before unfolding
+\node[cell] (h) {$h$};
+\node[input, below=of h] (x) {$x$};
+\node[output, above=of h] (o) {$o$};
+
+\draw[arrow] (x) -- node[right] {$U$} (h);
+\draw[arrow] (h) -- node[right] {$W$} (o);
+\draw[arrow] (h) edge[loop left] node {$V$} (h);
+
+% Unfolding arrow
+\draw[arrow, thick, blue] (0.65,0) -- node[above] {Unfold} ++(2.0,0);
+
+% Unfolded RNN cells
+\foreach \i in {0,1,2} {
+    \node[cell, right=2.5 cm +\i*2 cm of h] (h\i) {$h_{t\ifnum\i>0 +\i\fi}$};
+    \node[input, below=of h\i] (x\i) {$x_{t\ifnum\i>0 +\i\fi}$};
+    \node[output, above=of h\i] (o\i) {$o_{t\ifnum\i>0 +\i\fi}$};
+    \draw[arrow] (x\i) -- node[right] {$U$} (h\i);
+    \draw[arrow] (h\i) -- node[right] {$W$} (o\i);
+    \ifnum\i>0
+        \pgfmathtruncatemacro{\prev}{\i-1}
+        \draw[arrow] (h\prev) -- node[above] {$V$} (h\i);
+    \fi
+}
+
+\draw[arrow] (h2) --node[above] {V} ++(1.5,0);
+
+\end{tikzpicture}
+
+\caption{A single RNN unit. On the left, the RNN unit is compressed and contains a loop connection to itself. On the right, the unit is unfolded, which makes it easier to see how inputs with variable lengths are processed and how the information flows in the network. One of the simplest units could calculate $h_t=\sigma(Vh_{t-1}+Ux_t + b_h)$ and $o_t=\sigma(Wh_{t}+b_o)$.}
+\label{fig:rnn}
+\end{figure}
+
+% TODO: Transformers
 
 \subsection{Training of neural networks}
 % Training of neural networks.
@@ -116,7 +165,7 @@ Training of the network can be split into two parts --- the forward pass and the
 % Gradient descent algorithm
 After the gradients are computed, the loss function is minimized using the gradient descent algorithm. Given a loss function $L(\theta)$ that we want to minimize with respect to the weights, the gradient descent optimizes the function by taking a step in the opposite direction of gradient $\nabla_\theta L(\theta)$, which decreases the loss. That is, the weights are updated using a learning rate hyperparameter $\alpha$: $$ \theta \leftarrow \theta - \alpha \nabla_\theta L(\theta).$$
 
-For this thesis, it is enough to know there is a gradient descent algorithm optimizing the loss and this algorithm and its more advanced derivatives, such as Adam, comes with some hyperparameters. These usually include a learning rate, a \textit{momentum}, or a \textit{decay schedule}, if we want to gradually decrease the learning rate. Later, we will also use the fact that training of neural networks is an iterative process, and it usually takes at least tens of epochs until the network starts to converge.
+For this thesis, it is enough to know there is a gradient descent algorithm optimizing the loss and this algorithm and its more advanced derivatives, such as Adam, comes with some hyperparameters. These usually include a \textit{learning rate}, a \textit{momentum}, or a \textit{decay schedule}, if we want to gradually decrease the learning rate. Later, we will also use the fact that training of neural networks is an iterative process, and it usually takes at least tens of epochs until the network starts to converge.
 
 \subsection{Regularization}
 % What is regularization
@@ -126,7 +175,7 @@ The last concept that is useful to know about for hyperparameter optimization is
 One way to reduce overfitting is to use a \textit{weight decay}, which multiplies the weights by some constant smaller than one and usually close to zero, which we set as a hyperparameter. The intuition behind weight decay is that the network forgets a little each time the weights are updated, so it can learn only general patterns that occur often. Another common regularization technique is the \textit{dropout}. In dropout, some nodes are deactivated during a forward pass with the dropout rate (probability), which is a hyperparameter. The network is forced to work reasonably well with only a subset of nodes, which should also force it to learn general features.
 
 
-\section{Hyperparameter optimization}
+\section{Hyperparameter optimization} \label{sec:hpo}
 % Define hyperparameters, their impact on model performance, why optimization is important
 
 % TODO: Definition is inspired by Towards an Empirical Foundation for Assessing... Eggensperger
@@ -146,7 +195,7 @@ Several properties make the problem hard to solve.
     \item Observations are noisy. Repeated training may result in models that vary in performance since it is common to use random initialization of weights. The training process itself may not be deterministic as well. For example, if we use mini-batch shuffling.
 \end{itemize}
 
-On the other hand, we can leverage parallel computation to run multiple trials at the same time. One additional benefit of solving the optimization problem limited to deep neural networks is that we have access to intermediate results.
+On the other hand, we can leverage parallel computation to run multiple trials at the same time. One additional benefit of solving the optimization problem limited to deep neural networks is that we have access to intermediate results, which is not the case for general black-box optimization. This kind of task is sometimes called a grey-box optimization in the literature.
 
 % Note on efficiency
 
@@ -158,12 +207,11 @@ For anyone interested in the process of hyperparameter tuning and how it might b
 
 \section{Classic Hyperparameter Search Techniques}
 % Manual search, grid search, random search
-Before we get to algorithmic approaches, let us consider manual hyperparameter tuning. We cannot be surprised that people still tune hyperparameters manually. There is no technical overhead or barrier. Also, in the process of hyperparameter tuning, we gain insight into the problem, which might allow us to improve our solution in ways that are not achievable just by hyperparameter tuning. Nevertheless, there are clear limits to manual tuning so let us dive into the automated approaches. The traditional algorithms for hyperparameter optimization are grid search and random search. These algorithms are simple and still widely used.
+The default approach for many practitioners is manual hyperparameter tuning. We cannot be surprised that people still tune hyperparameters manually. There is no technical overhead or barrier. Also, in the process of hyperparameter tuning, we gain insight into the problem, which might allow us to improve our solution in ways that are not achievable just by hyperparameter tuning. Nevertheless, there are clear limits to manual tuning so let us dive into the algorithmic approaches. The traditional algorithms for hyperparameter optimization are grid search and random search. These algorithms are simple and still widely used.
 
-\paragraph{Grid Search} Grid search performs an exhaustive search through a manually specified subset of the hyperparameter space. Grid search is best used when the number of hyperparameters is small, or the function evaluation is not that expensive. Its biggest drawback is that the number of configurations to evaluate grows exponentially with the number of hyperparameters. Therefore, it is best to determine which hyperparameters are the most important and limit the search only to this subset. If we did not do this, we would waste a lot of computational power on hyperparameter combinations, where only the unimportant hyperparameter changes, but the important ones stay the same. But how do we determine which hyperparameters are important and we need to tune them together? On the other hand, grid search is easily parallelizable. That is an enormous advantage since in real-world scenarios, it is not uncommon to have access to a computing cluster.
+\paragraph{Grid Search} Grid search performs an exhaustive search through a manually specified subset of the hyperparameter space. Grid search is best used when the number of hyperparameters is small, or the function evaluation is not that expensive. Its biggest drawback is that the number of configurations to evaluate grows exponentially with the number of hyperparameters. Therefore, it is best to determine which hyperparameters are the most important and limit the search only to this subset. If we did not do this, we would waste a lot of computational resources on hyperparameter combinations, where only the unimportant hyperparameter changes, but the important ones stay the same. We illustrate this situation in Figure~\ref{fig:grid}. To mitigate this, we would need a way to determine which hyperparameters are important and need to be tuned together, which is a hard problem itself. On the other hand, grid search is easily parallelizable. That is an enormous advantage since in real-world scenarios, it is not uncommon to have access to a computing cluster.
 
 \paragraph{Random Search} Random search is often used in the HPO literature as the baseline method for more advanced algorithms. In real-world optimization problems, random search often works better than grid search. Bergstra et al.~\cite{bergstra2012random} compared random search to grid search and found that randomly chosen trials are more efficient for hyperparameter optimization than trials on a grid. It is possible to encounter a random search with 2X-budget as a baseline in some research papers. It is just a random search with two times the budget of other methods in comparison. As Li et al.~\cite{li2018hyperband} show, 2X-budget random search provides a strong baseline.
-% TODO: Reference the figure somewhere.
 
 \begin{figure}[H]
     \centering
@@ -287,7 +335,7 @@ where
     \label{fig:ei}
 \end{figure}
 
-\xxx{Include other acquisitions if needed, like entropy search, or knowledge gradient}
+% TODO: Include other acquisitions if needed, like entropy search, or knowledge gradient
 % PI is for maximization
 %Probability of improvement~\cite{kushner1964new} \[ \text{PI}(x) = P(y > y^* \given x) = \int_{y^*}^{\infty} p(y \given x) \, dy \]
 
@@ -498,13 +546,13 @@ where the $\overset{\text{rank}}{\simeq}$ symbol means the order isomorphic betw
 
 \subfile{./alg/tpe-algo.tex}
 
-\subsubsection{Components and control parameters}
-\xxx{In this section, we will look at how the different components and control parameters change the behavior of the algorithm}. We start with the \emph{splitting algorithm}, which is used to split the observations $\D$ into $\Dl$ and $\Dg$. Weighting Algorithm. Kernel Functions (numerical, categorical, univariate vs multivariate). Bandwidth. Non-informative prior. \xxx{Will I have to go into such a details?}
+% \subsubsection{Components and control parameters}
+% \xxx{In this section, we will look at how the different components and control parameters change the behavior of the algorithm}. We start with the \emph{splitting algorithm}, which is used to split the observations $\D$ into $\Dl$ and $\Dg$. Weighting Algorithm. Kernel Functions (numerical, categorical, univariate vs multivariate). Bandwidth. Non-informative prior. \xxx{Will I have to go into such a details?}
 
 \subsection{Random Forest}
 The last Bayesian optimization surrogate that we are going to introduce is the random forest model. This approach was first introduced by Hutter et al.~\cite{hutter2010sequential} as SMAC, which stands for Sequential Model-based Algorithm Configuration. It was published as an alternative to the Gaussian processes for the general algorithm configuration problem, approximately at the same time as the TPE.\@ The random forest surrogate is still widely used, mostly in the updated SMAC3 Python package~\cite{smac3}.
 
-Random forest~\cite{breiman2001random} is a machine learning method for classification and regression that trains an ensemble of decision trees and predicts the combined value from all the decision trees during inference. In SMAC, random forests are used for regression to directly model the objective function. The advantage of using regression trees is that they perform well on categorical input data, where Gaussian processes usually struggle \xxx{(add citation)}. The model is trained by randomly sampling $n$ data points with repetition for each of $B$ regression trees. At each split point in a tree, only a random subset of features is considered. The default is $5/6$ of all features. The default number of regression trees in the algorithm $B$ is set to $10$. There is one more parameter $n_{min}$ for the minimal number of data points required to split a node. This parameter is set to $n_{min}=10$ by default.
+Random forest~\cite{breiman2001random} is a machine learning method for classification and regression that trains an ensemble of decision trees and predicts the combined value from all the decision trees during inference. In SMAC, random forests are used for regression to directly model the objective function. The advantage of using regression trees is that they perform well on categorical input data, unlike Gaussian processes. The model is trained by randomly sampling $n$ data points with repetition for each of $B$ regression trees. At each split point in a tree, only a random subset of features is considered. The default is $5/6$ of all features. The default number of regression trees in the algorithm $B$ is set to $10$. There is one more parameter $n_{min}$ for the minimal number of data points required to split a node. This parameter is set to $n_{min}=10$ by default.
 
 Prediction for a new data point is the empirical mean of individual trees' predictions. A prediction of a single tree is usually the mean of the data points in the leaf that corresponds to the input configuration, but the authors implement an option for a user-defined prediction function as well. The algorithm also calculates the empirical variance from the predictions of the individual trees. To select the next configuration to evaluate, the expected improvement acquisition function is maximized. SMAC solves the maximization problem by a multi-start local search. According to the authors, this method provides better results than random sampling.
 % Could write a little more about the local search.

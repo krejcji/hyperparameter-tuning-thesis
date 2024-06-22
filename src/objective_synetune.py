@@ -13,21 +13,13 @@ from syne_tune.utils import (
 from syne_tune.constants import ST_CHECKPOINT_DIR
 
 from load_data import load_data
-from train_net_st import train_net
-#from logger import Logger
-#from logger import BudgetExceededException
-
-class Logger:
-  def __getattr__(self, attr):
-    def dummy(*args, **kwargs):
-        return None
-    return dummy
+from training.train_net_st import train_net
+from training.load_pytorch_model import model_and_optimizer
 
 if __name__ == '__main__':
     root = logging.getLogger()
     root.setLevel(logging.INFO)
     parser = ArgumentParser()
-    #parser.add_argument(f"--{ST_CHECKPOINT_DIR}", type=str)
     add_config_json_to_argparse(parser)
     add_checkpointing_to_argparse(parser)
     args, _ = parser.parse_known_args()
@@ -35,25 +27,41 @@ if __name__ == '__main__':
 
     report = Reporter()
 
+    # Load the dataloaders
+    start_t = time.time()
     trainloader, valloader = load_data(config)
+    end_t = time.time()
+    print(f"Objective dataset loading took: {end_t - start_t}s")
 
-    if ST_CHECKPOINT_DIR not in args:
-        raise ValueError(f"Missing {ST_CHECKPOINT_DIR} argument.")
-    else:
-        checkpoint_path = getattr(args, ST_CHECKPOINT_DIR)
-    logger = Logger()
+    # Load the model, optimizer, and scheduler and their states
+    start_t = time.time()
+    state = model_and_optimizer(config)
 
+    load_model_fn, save_model_fn = pytorch_load_save_functions(
+        {"model": state["model"], "optimizer": state["optimizer"],
+         "scheduler": state["scheduler"]}
+    )
     resume_from = resume_from_checkpointed_model(config, load_model_fn)
+    end_t = time.time()
+    print(f"Model loading took: {end_t - start_t}s")
 
-    for step in range(config['epochs']):
-        loss = train_net(trainloader,
+    # Iterate over the epochs
+    for step in range(resume_from+1, config['epochs']+1):
+        start_t = time.time()
+        result = train_net(trainloader,
             valloader,
+            state,
             config,
-            previous_epoch=step,
-            end_epoch=step + 1,
-            checkpoint_path=checkpoint_path,
-            logger=logger)
+            epoch=step)
+        end_t = time.time()
+        checkpoint_model_at_rung_level(config, save_model_fn, step)
+        print(f"Epoch {step} took: {end_t - start_t}s, val_loss: {result['val_loss']}")
+
         # Feed the score back to Syne Tune.
-        print(f"Epoch {step + 1} loss: {loss[0]['loss']}")
-        report(epoch=step + 1, val_loss=loss[0]['loss'])
+        report(epoch=step, **result)
+
+    # Clean up resources (e.g. shared memory)
+    if callable(getattr(trainloader.dataset, 'close', None)):
+        trainloader.dataset.close()
+        valloader.dataset.close()
 

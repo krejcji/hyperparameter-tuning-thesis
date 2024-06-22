@@ -1,0 +1,71 @@
+# Optimization configuration
+metrics: ['accuracy']
+optimization_metric: 'accuracy'
+optimization_mode: 'max'
+
+max_wallclock_time: 84600 # Upper bound of how much time one run should take in seconds (20 hours)
+budget: 20       # Number of full evaluations to run
+
+model: 'CNN_2D_simple'
+
+data:
+  name: 'CIFAR10'
+  batch_size: 256
+  sampler: 'RandomSampler'
+  input_dim: [3, 32, 32]
+  output_dim: 10
+
+
+tunable_params:
+  - name: 'learning_rate'
+    type: 'float'
+    high: 0.1
+    low: 0.0001
+    log: true
+  - name: 'eta_min'
+    type: 'float'
+    high: 1.0
+    low: 0.0
+    log: false
+  - name: 'dropout'
+    type: 'float'
+    high: 0.8
+    low: 0.0
+    log: false
+  - name: 'fc_neurons'
+    type: 'int'
+    high: 128
+    low: 8
+    log: false
+  - name: 'channel_multiplier'
+    type: 'int'
+    high: 16
+    low: 1
+    log: false
+  - name: 'conv_layers'
+    type: 'int'
+    high: 4
+    low: 1
+    log: false
+  - name: 'batch_norm'
+    type: 'categorical'
+    choices: [1, 0]
+  - name: 'label_smoothing'
+    type: 'float'
+    high: 0.3
+    low: 0.0
+    log: false
+
+fixed_params:
+  - name: 'epochs'  # Epochs to fully train the model
+    value: 75
+  - name: 'optimizer'
+    value: 'AdamW'
+  - name: 'loss'
+    value: 'CrossEntropyLoss'
+  - name: 'out_activation'
+    value: 'Softmax'
+  - name: 'decay'
+    value: 'cosine'
+  - name: 'save_model'
+    value: false

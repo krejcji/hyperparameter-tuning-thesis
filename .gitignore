@@ -14,6 +14,11 @@ wandb/
 hpo4dl_results/
 outputs/
 smac3_output/
+experiments/
+papers/
+z_inspiration_theses/
+src/syne_test/
+.vscode/
 
 # Distribution / packaging
 .Python

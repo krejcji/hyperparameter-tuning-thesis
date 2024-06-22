@@ -53,6 +53,7 @@ def train_net(train_loader, val_loader, state, params, epoch):
     first = True
     enum_time_start = time.time()
     train_time_start = enum_time_start
+    start_time = enum_time_start
 
     with tqdm(train_loader, unit='batch',) as per_epoch:
         for x,y in per_epoch:
@@ -104,6 +105,7 @@ def train_net(train_loader, val_loader, state, params, epoch):
         scheduler.step(val_loss[-1])
     else:
         scheduler.step()
+    end_time = time.time()
 
     print(f"Training end. Enum: {enum_time_end - enum_time_start}, Train: {train_time_end - train_time_start}, Total: {end_time - start_time}")
     print (f"loss: {train_loss[-1]:.4e}, val_loss: {val_loss[-1]:.4e} ")

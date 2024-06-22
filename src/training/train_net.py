@@ -22,7 +22,7 @@ def train_net(train_loader, val_loader, params, logger,
     model = load_model(params)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device: {device}")
-    summary(model, input_size=input_size)
+    #summary(model, input_size=input_size) TODO: Error with encoding with syne_tune
 
     # Optimizer
     lr = params['learning_rate']
@@ -81,7 +81,7 @@ def train_net(train_loader, val_loader, params, logger,
         name = checkpoint_path.split('_')[-1]
         id = f"{last_dir}_{name}"
         if previous_epoch > 0:
-            load_checkpoint(model, opt, checkpoint_path)
+            load_checkpoint(model, opt, scheduler, checkpoint_path)
         n_epochs = end_epoch - previous_epoch
     else:
         id = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -144,7 +144,10 @@ def train_net(train_loader, val_loader, params, logger,
         end_time = time.time()
         elapsed_time = end_time - start_time
 
-        scheduler.step()
+        if type(scheduler) == torch.optim.lr_scheduler.ReduceLROnPlateau:
+            scheduler.step(val_loss[-1])
+        else:
+            scheduler.step()
 
         print (f"loss: {train_loss[-1]:.4e}, val_loss: {val_loss[-1]:.4e} ")
 
@@ -171,7 +174,7 @@ def train_net(train_loader, val_loader, params, logger,
 
     # Save checkpoint (for optimization purposes) and return evaluation info
     if checkpoint_path is not None:
-        save_checkpoint(model, opt, end_epoch, checkpoint_path)
+        save_checkpoint(model, opt, scheduler, end_epoch, checkpoint_path)
         evaluated_info = [
             {'epoch': i + previous_epoch + 1, 'metric': val_loss[i], 'loss': train_loss[i]
             } for i in range(len(val_loss))

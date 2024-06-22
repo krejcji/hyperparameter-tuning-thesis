@@ -1,19 +1,16 @@
 from pathlib import Path
 import os
 
-import pandas as pd
-import numpy as np
-import wfdb
-import ast
 import torch
 from torch.utils.data import Dataset
+import numpy as np
 
 
 def load_raw_data(df, sampling_rate, path):
     if sampling_rate == 100:
-        data = [wfdb.rdsamp(path / f) for f in df.filename_lr]
+        data = [wfdb.rdsamp(path / f) for f in df.filename_lr] # type: ignore
     else:
-        data = [wfdb.rdsamp(path / f) for f in df.filename_hr]
+        data = [wfdb.rdsamp(path / f) for f in df.filename_hr] # type: ignore
     data = np.array([signal for signal, meta in data])
     return data
 
@@ -21,6 +18,7 @@ def encode_labels(series, train=True):
     """
     One-hot encode a Series of lists of strings (e.g. diagnostic superclass labels)
     """
+    import pandas as pd # To supress warning, pandas is already imported from store_processed_data
     diag_superclass = ['NORM', 'MI', 'STTC', 'CD', 'HYP']
     # Get the original length of the Series
     original_length = len(series)
@@ -39,6 +37,10 @@ def encode_labels(series, train=True):
     return df
 
 def store_processed_data(path):
+    import ast
+    import pandas as pd
+    import wfdb # type: ignore
+
     if not os.path.exists(path / "serialized"):
         os.makedirs(path / "serialized")
     sampling_rate=100

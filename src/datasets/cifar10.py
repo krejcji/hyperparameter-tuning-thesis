@@ -1,6 +1,4 @@
 import os
-import sys
-from typing import Any, Callable, Sequence, TextIO
 from pathlib import Path
 
 import numpy as np
@@ -35,10 +33,19 @@ class CIFAR10:
     test = None
 
     def __init__(self, path):
+        if self.train is None:
+            self.load_data(path)
+
+    @classmethod
+    def load_data(self, path: Path):
         if not os.path.exists(path):
             raise FileNotFoundError(f"File not found: {path}")
 
+        import time
+        start = time.perf_counter()
         cifar = np.load(path / "cifar10.npz")
+        end = time.perf_counter()
+        print(f'Loading took: {end - start}')
         data = cifar['data.npy']
         labels = cifar['labels.npy']
 

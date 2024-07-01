@@ -9,7 +9,7 @@ class CNN2DSimpleNet(nn.Module):
         self.layers = nn.ModuleList()
 
         in_channels = params['data']['input_dim'][0]
-        out_channels = params['channel_multiplier']
+        out_channels = params.get('channel_multiplier', 1)
         width = params['data']['input_dim'][1]
 
         batch_norm = params.get('batch_norm', False)
@@ -26,7 +26,7 @@ class CNN2DSimpleNet(nn.Module):
             out_channels *= 2
             width = width // 2
 
-        if params is not None and 'dropout' in params:
+        if 'dropout' in params:
             self.dropout = nn.Dropout(params['dropout'])
         self.flatten_size = out_channels//2 * width * width
         self.fc1 = nn.Linear(self.flatten_size, fc_neurons)

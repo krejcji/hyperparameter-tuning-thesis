@@ -1,0 +1,97 @@
+# Optimization configuration
+metrics: ['accuracy']
+optimization_metric: 'accuracy'
+optimization_mode: 'max'
+
+max_wallclock_time: 84960 # Upper bound of how much time one run should take in seconds (20 hours)
+budget: 20      # Number of full evaluations to run
+
+model: 'CNN_2D'
+
+data:
+  name: 'SVHN'
+  batch_size: 256
+  sampler: 'RandomSampler'
+  input_dim: [3, 32, 32]
+  output_dim: 10
+
+tunable_params:
+  - name: 'learning_rate'
+    type: 'float'
+    high: 0.1
+    low: 0.00001
+    log: true
+  - name: 'momentum'
+    type: 'float'
+    high: 0.99
+    low: 0.0
+    log: false
+  - name: 'eta_min'
+    type: 'float'
+    high: 1.0
+    low: 0.0
+    log: false
+  - name: 'weight_decay'
+    type: 'float'
+    high: 0.1
+    low: 0.000001
+    log: true
+  - name: 'label_smoothing'
+    type: 'float'
+    high: 0.4
+    low: 0.0
+    log: false
+  - name: 'depth'
+    type: 'int'
+    high: 5
+    low: 1
+    log: false
+  - name: 'channel_multiplier'
+    type: 'int'
+    high: 4
+    low: 1
+    log: false
+  - name: 'fc_neurons'
+    type: 'int'
+    high: 128
+    low: 8
+    log: false
+  - name: 'rotation'
+    type: 'int'
+    high: 30
+    low: 0
+    log: false
+  - name: 'translate'
+    type: 'float'
+    high: 0.3
+    low: 0.0
+    log: false
+  - name: 'scale_factor'
+    type: 'float'
+    high: 0.3
+    low: 0.0
+    log: false
+  - name: 'scale_offset'
+    type: 'float'
+    high: 0.2
+    low: 0.0
+    log: false
+  - name: 'sharpness_factor'
+    type: 'float'
+    high: 2.0
+    low: 0.0
+    log: false
+
+fixed_params:
+  - name: 'epochs'  # Epochs to fully train the model
+    value: 40
+  - name: 'optimizer'
+    value: 'SGD'
+  - name: 'loss'
+    value: 'CrossEntropyLoss'
+  - name: 'out_activation'
+    value: 'Softmax'
+  - name: 'decay'
+    value: 'cosine'
+  - name: 'save_model'
+    value: false

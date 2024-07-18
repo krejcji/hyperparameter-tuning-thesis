@@ -1,0 +1,63 @@
+# Optimization configuration
+metrics: ['macro_auc']
+optimization_metric: 'macro_auc'
+optimization_mode: 'max'
+
+max_wallclock_time: 149760 # Upper bound of how much time one run should take in seconds (20 hours)
+budget: 20      # Number of full evaluations to run
+
+model: 'DenseNet'
+
+data:
+  name: 'xray'
+  batch_size: 48 # 48
+  sampler: 'RandomSampler'
+  input_dim: [1, 224, 224]
+  output_dim: 14
+
+tunable_params:
+  - name: 'learning_rate'
+    type: 'float'
+    high: 0.1
+    low: 0.00001
+    log: true
+  - name: 'eta_min'
+    type: 'float'
+    high: 1.0
+    low: 0.0
+    log: false
+  - name: 'weight_decay'
+    type: 'float'
+    high: 0.1
+    low: 0.000001
+    log: true
+  - name: 'rotation'
+    type: 'int'
+    high: 30
+    low: 0
+    log: false
+  - name: 'resize_crop'
+    type: 'float'
+    high: 1.0
+    low: 0.7
+    log: false
+  - name: 'translate'
+    type: 'float'
+    high: 0.3
+    low: 0.0
+    log: false
+
+
+fixed_params:
+  - name: 'epochs'  # Epochs to fully train the model
+    value: 20
+  - name: 'optimizer'
+    value: 'AdamW'
+  - name: 'loss'
+    value: 'BCEWithLogitsLoss'
+  - name: 'out_activation'
+    value: 'Softmax'
+  - name: 'decay'
+    value: 'cosine'
+  - name: 'save_model'
+    value: false

@@ -1,0 +1,74 @@
+metrics: ['macro_auc']
+optimization_metric: 'macro_auc'
+optimization_mode: 'max'
+
+wall_time: 84600  # In seconds
+budget: 20        # Number of full evaluations to run
+
+model: 'RNN' #'xresnet1d'
+
+data:
+  name: 'PTB-XL-Shared'
+  batch_size: 256
+  sampler: 'RandomSampler'
+  input_dim: [12, 256]
+  output_dim: 5
+
+tunable_params:
+  - name: 'optimizer'
+    type: 'categorical'
+    values: ['AdamW', 'RMSprop']
+  - name: 'learning_rate'
+    type: 'float'
+    high: 0.1
+    low: 0.0001
+    log: true
+  - name: 'weight_decay'
+    type: 'float'
+    high: 0.2
+    low: 0.0
+    log: false
+  - name: 'decay'
+    type: 'categorical'
+    values: ['cosine', 'ReduceLROnPlateau']
+  - name: 'eta_min'
+    type: 'float'
+    high: 0.99
+    low: 0.00001
+    log: false
+  - name: 'rnn_type'
+    type: 'categorical'
+    values: ['LSTM', 'GRU']
+  - name: 'bidirectional'
+    type: 'categorical'
+    values: [1, 0]
+  - name: 'rnn_hidden'
+    type: 'int'
+    high: 512
+    low: 64
+    log: false
+  - name: 'rnn_layers'
+    type: 'int'
+    high: 3
+    low: 1
+    log: false
+  - name: 'rnn_dropout'
+    type: 'float'
+    high: 0.6
+    low: 0.0
+    log: false
+  - name: 'dropout'
+    type: 'float'
+    high: 0.6
+    low: 0.0
+    log: false
+
+fixed_params:
+  - name: 'epochs'  # Epochs to fully train the model
+    value: 50
+  - name: 'loss'
+    value: 'BCEWithLogitsLoss'
+  - name: 'out_activation'
+    value: 'None'
+  - name: 'save_model'
+    value: false

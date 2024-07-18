@@ -3,13 +3,13 @@ metrics: ['accuracy']
 optimization_metric: 'accuracy'
 optimization_mode: 'max'
 
-max_wallclock_time: 84600 # Upper bound of how much time one run should take in seconds (20 hours)
+max_wallclock_time: 316800 # Upper bound of how much time one run should take in seconds (20 hours)
 budget: 20       # Number of full evaluations to run
 
 model: 'CNN_2D_simple'
 
 data:
-  name: 'CIFAR10'
+  name: 'SVHN'
   batch_size: 256
   sampler: 'RandomSampler'
   input_dim: [3, 32, 32]
@@ -58,7 +58,7 @@ tunable_params:
 
 fixed_params:
   - name: 'epochs'  # Epochs to fully train the model
-    value: 75
+    value: 70
   - name: 'optimizer'
     value: 'AdamW'
   - name: 'loss'

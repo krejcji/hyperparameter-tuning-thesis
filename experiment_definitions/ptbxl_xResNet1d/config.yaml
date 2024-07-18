@@ -1,0 +1,62 @@
+metrics: ['macro_auc']
+optimization_metric: 'macro_auc'
+optimization_mode: 'max'
+
+wall_time: 42000  # In seconds
+budget: 20        # Number of full evaluations to run
+
+model: 'xresnet1d'
+
+data:
+  name: 'PTB-XL-Shared'
+  batch_size: 256
+  sampler: 'RandomSampler'
+  input_dim: [12, 256]
+  output_dim: 5
+
+tunable_params:
+  - name: 'model_size'
+    type: 'categorical'
+    values: ['xresnet1d18', 'xresnet1d50', 'xresnet1d101']
+  - name: 'learning_rate'
+    type: 'float'
+    high: 0.1
+    low: 0.0001
+    log: true
+  - name: 'weight_decay'
+    type: 'float'
+    high: 0.2
+    low: 0.0
+    log: false
+  - name: 'eta_min'
+    type: 'float'
+    high: 0.99
+    low: 0.00001
+    log: false
+  - name: 'model_dropout'
+    type: 'float'
+    high: 0.6
+    low: 0.0
+    log: false
+  - name: 'fc_dropout'
+    type: 'float'
+    high: 0.6
+    low: 0.0
+    log: false
+  - name: 'original_f_number'
+    type: 'categorical'
+    values: [0, 1]
+
+fixed_params:
+  - name: 'epochs'  # Epochs to fully train the model
+    value: 40
+  - name: 'loss'
+    value: 'BCEWithLogitsLoss'
+  - name: 'out_activation'
+    value: 'None'
+  - name: 'optimizer'
+    value: 'AdamW'
+  - name: 'decay'
+    value: 'cosine'
+  - name: 'save_model'
+    value: false

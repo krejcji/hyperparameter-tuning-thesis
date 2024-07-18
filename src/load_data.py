@@ -9,6 +9,7 @@ PTBXL_PATH = Path('data') / 'ptbxl'
 KAGGLE_PPG_PATH = Path('data') / 'kaggle_ppg_bp'
 CIFAR10_PATH = Path('data') / 'cifar_10'
 SVHN_ROOT = Path('data') / 'svhn'
+NIH_XRAY_PATH = Path('data') / 'NIH'
 
 def load_data(config, create=False):
     # Default sampler is RandomSampeler, but MultifidelitySampler is supported as well
@@ -30,14 +31,11 @@ def load_data(config, create=False):
 
         train = PTBXLDataset (PTBXL_PATH, train=True, create=create)
         dev = PTBXLDataset(PTBXL_PATH, train=False, create=False)
-        print(f"Created PTB-XL dataset. Create: {create}")
-        print(f"Train: {len(train)}")
-        print(f"Dev: {len(dev)}")
     elif config['data']['name'] == 'PTB-XL-Shared':
         from datasets.ptbxl_shared import PTBXLDatasetShared
-
-        train = PTBXLDatasetShared (PTBXL_PATH, train=True, create=create)
-        dev = PTBXLDatasetShared(PTBXL_PATH, train=False, create=create)
+        unique_id = config.get('unique_id', 0)
+        train = PTBXLDatasetShared (PTBXL_PATH, train=True, create=create, id=unique_id)
+        dev = PTBXLDatasetShared(PTBXL_PATH, train=False, create=create, id=unique_id)
     elif config['data']['name'] == 'Kaggle_PPG':
         from datasets.kaggle import KaggleDataset
 
@@ -81,10 +79,6 @@ def load_data(config, create=False):
             v2.ToDtype(torch.float32, scale=True),
         ])
 
-        #mnist_transform = v2.Compose([
-        #    v2.ToTensor()
-        #])
-
         def mnist_fn(image):
             return mnist_transform(image)
 
@@ -93,14 +87,39 @@ def load_data(config, create=False):
     elif config['data']['name'] == 'SVHN':
         from torchvision.datasets import SVHN
         import torchvision.transforms.v2 as v2
+        from torchvision.transforms import InterpolationMode
 
-        transform_svhn = v2.Compose([
-            v2.RandomResizedCrop(size=(32, 32), scale=(0.8, 1.0), interpolation=v2.InterpolationMode.BILINEAR),  # Randomly resize and crop
-            v2.RandomHorizontalFlip(p=0.5),
-            v2.ToImage(),
-            v2.ToDtype(torch.float32, scale=True),
-            v2.Normalize((0.4376821, 0.4437697, 0.47280442), (0.19803012, 0.20101562, 0.19703614))
-        ])
+        if 'rotation' in config: # svhn_residual
+            num_workers = 2
+            rotation = config.get('rotation', 0)
+            trans = config.get('translate', 0.1)
+            scale_factor = config.get('scale_factor', 0.1)
+            scale_offset = config.get('scale_offset', 0.1)
+            scale_min = 1 - scale_factor - scale_offset
+            scale_max = 1 + scale_factor - scale_offset
+            sharpness_factor = config.get('sharpness_factor', 1)
+
+            transform_svhn = v2.Compose([
+                v2.ToImage(),
+                v2.RandomAffine(degrees=rotation,
+                                translate=(trans, trans),
+                                scale=(scale_min, scale_max),
+                                interpolation=InterpolationMode.BILINEAR),
+                v2.RandomAdjustSharpness(sharpness_factor=sharpness_factor),
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Normalize((0.4376821, 0.4437697, 0.47280442), (0.19803012, 0.20101562, 0.19703614))
+            ])
+        else: # svhn_simple
+            num_workers = 1
+            transform_svhn = v2.Compose([
+                v2.ToImage(),
+                v2.RandomAffine(degrees=10,
+                                translate=(0.1, 0.1),
+                                scale=(0.8, 1.1),
+                                interpolation=InterpolationMode.BILINEAR),
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Normalize((0.4376821, 0.4437697, 0.47280442), (0.19803012, 0.20101562, 0.19703614))
+            ])
 
         transform_svhn_val = v2.Compose([
             v2.ToImage(),
@@ -111,6 +130,62 @@ def load_data(config, create=False):
         train = SVHN(root=SVHN_ROOT, split='train', download=True, transform=transform_svhn)
         dev = SVHN(root=SVHN_ROOT, split='test', download=True, transform=transform_svhn_val)
         # SVHN dev set has 5099 out of 26032 samples with y==1, which is 19.58% of the dataset
+    elif config['data']['name'] == 'xray':
+        from datasets.torchxrayvision import NIH_Dataset
+        from datasets.torchxrayvision import SubsetDataset
+        from sklearn.model_selection import GroupShuffleSplit
+        import torchvision.transforms.v2 as v2
+        from torchvision.transforms import InterpolationMode
+
+        num_workers = 2
+
+        imgpath = NIH_XRAY_PATH / "images-224"
+        csvpath = NIH_XRAY_PATH / "Data_Entry_2017_v2020.csv.gz"
+        bboxpath = NIH_XRAY_PATH / "BBox_List_2017.csv.gz"
+
+        data_aug = None
+        unique_patients = True
+
+        rot = config.get('rotation', 5)
+        trans = config.get('translate', 0.1)
+        scale = config.get('resize_crop', 0.8)
+
+        data_aug = v2.Compose([
+            v2.ToImage(),
+            v2.RandomAffine(degrees=rot,
+                            translate=(trans, trans),
+                            scale=(scale, 1.0),
+                            interpolation=InterpolationMode.BILINEAR),
+            v2.ToDtype(torch.float32, scale=True),
+        ])
+
+        data_aug_test = v2.Compose([
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True),
+        ])
+
+        dataset = NIH_Dataset(imgpath=imgpath, csvpath=csvpath, bbox_list_path=bboxpath, data_aug=data_aug, transform=None, unique_patients=unique_patients)
+        dataset_test = NIH_Dataset(imgpath=imgpath, csvpath=csvpath, bbox_list_path=bboxpath, data_aug=data_aug_test, transform=None, unique_patients=unique_patients)
+        seed = config.get('seed', 0) # Its not in config
+        gss = GroupShuffleSplit(train_size=0.8,test_size=0.2, random_state=seed)
+        train_inds, test_inds = next(gss.split(X=range(len(dataset)), groups=dataset.csv.patientid))
+        train = SubsetDataset(dataset, train_inds)
+        dev = SubsetDataset(dataset_test, test_inds)
+    elif config['data']['name'] == 'xray_g':
+        from datasets.torchxrayvision import NIH_Google_Dataset
+        from datasets.torchxrayvision import SubsetDataset
+        from sklearn.model_selection import GroupShuffleSplit
+        num_workers = 1
+        imgpath = NIH_XRAY_PATH / "images-224"
+        csvpath = NIH_XRAY_PATH / "google2019_nih-chest-xray-labels.csv.gz"
+        orig_csvpath = NIH_XRAY_PATH / "Data_Entry_2017_v2020.csv.gz"
+        dataset = NIH_Google_Dataset(imgpath=imgpath, csvpath=csvpath, orig_csvpath=orig_csvpath, transform=None)
+        seed = config.get('seed', 0) # Its not in config
+        gss = GroupShuffleSplit(train_size=0.8,test_size=0.2, random_state=seed)
+        train_inds, test_inds = next(gss.split(X=range(len(dataset)), groups=dataset.csv.patientid))
+        train = SubsetDataset(dataset, train_inds)
+        dev = SubsetDataset(dataset, test_inds)
+
     else:
         raise ValueError(f"Unknown dataset: {config['data']['name']}")
 

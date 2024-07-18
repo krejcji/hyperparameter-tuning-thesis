@@ -1,3 +1,9 @@
+"""
+Train netwrok for n epochs, even resuming a paused trial.
+Log metrics. Also supports checpointing and loading.
+To be used when optimizing hyperparameters with libraries
+such as Optuna or SMAC.
+"""
 from pathlib import Path
 import time
 from datetime import datetime
@@ -22,7 +28,7 @@ def train_net(train_loader, val_loader, params, logger,
     model = load_model(params)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device: {device}")
-    #summary(model, input_size=input_size) TODO: Error with encoding with syne_tune
+    #summary(model, input_size=input_size)
 
     # Optimizer
     lr = params['learning_rate']

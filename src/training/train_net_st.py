@@ -1,9 +1,16 @@
+"""
+Train PyTorch network for one epoch and report the results back to the tuner.
+To be used with the syne-tune library.
+"""
 import time
 
 import numpy as np
 from tqdm import tqdm
 import torch
-# from torchinfo import summary
+
+SUMMARY = False # Must be false before training, because of encoding error with syne_tune
+if SUMMARY:
+    from torchinfo import summary
 
 from dl_utils import evaluate_metrics
 
@@ -19,7 +26,9 @@ def train_net(train_loader, val_loader, state, params, epoch):
     scheduler = state['scheduler']
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device: {device}")
-    #summary(model, input_size=input_size) TODO: Error with encoding with syne_tune
+    if SUMMARY:
+        summ = str(summary(model, input_size=input_size))
+        print(summ)
 
     # Loss function
     if params['loss'] == 'BCEWithLogitsLoss':

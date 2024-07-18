@@ -1,3 +1,7 @@
+"""
+Logger for the non syne-tune experiments and HPO methods.
+The logger is also responsible for monitoring the budget and time budget.
+"""
 from pathlib import Path
 import wandb
 from datetime import datetime

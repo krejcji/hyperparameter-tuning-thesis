@@ -1,3 +1,10 @@
+"""
+The original HPO launer script. Deprecated in favor of run_hpo_synetune.py
+Supports:
+- Optuna (BO with early-stopping)
+- SMAC (BOHB with KDEs)
+- DEHB
+"""
 import sys
 import os
 import time
@@ -15,7 +22,7 @@ from ConfigSpace import ConfigurationSpace, Float, Integer, Categorical
 import torch
 
 from load_data import load_data
-from train_net import train_net
+from training.train_net import train_net
 from logger import Logger
 from logger import BudgetExceededException
 

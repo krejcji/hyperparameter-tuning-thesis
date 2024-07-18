@@ -1,3 +1,8 @@
+"""
+The entry-point of all real-world experiments in syne-tyne.
+This code is first called when a new configuration is sampled by the tuner.
+Loads the dataset and model including state of the trial.
+"""
 import logging
 import time
 

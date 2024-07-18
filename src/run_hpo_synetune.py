@@ -1,5 +1,10 @@
+"""
+Contains the 'main' method of real-world syne-tune experiments.
+Selects the HPO method and creates the tuner.
+"""
 import argparse
 import time
+import os
 import yaml
 from pathlib import Path
 
@@ -42,11 +47,15 @@ def run_hpo(config, args, seed):
             else:
                 config_space[name] = randint(param['low'], param['high'])
         elif param['type'] == 'categorical':
-            config_space[name] = choice(param['choices'])
+            config_space[name] = choice(param['values'])
         else:
             raise ValueError(f"Unknown parameter type: {param['type']}")
 
     config_space['max_epochs'] = config_space['epochs']
+
+    # Set unique id for shared memory, if used
+    config_space['unique_id'] = os.getpid()
+    config['unique_id'] = os.getpid()
 
     # Common scheduler arguments
     method_kwargs = dict(
@@ -76,7 +85,6 @@ def run_hpo(config, args, seed):
     elif args.method == 'BOHB':
         scheduler = SyncBOHB(
             config_space,
-            #type="promotion",
             **method_kwargs
         )
     elif args.method == 'DyHPO':
@@ -119,7 +127,7 @@ def run_hpo(config, args, seed):
     start_time = time.time()
     train, _ = load_data(config, create=True)
     end_time = time.time()
-    print(f"Initial dataset loading took: {end_time - start_time} sec")
+    print(f"Initial dataset loading took: {end_time - start_time}s")
 
     tuner = Tuner(
         trial_backend=LocalBackend(entry_point='./src/objective_synetune.py',
@@ -144,15 +152,12 @@ def run_hpo(config, args, seed):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    #parser.add_argument('--experiment_tag', default='shared-mem-3', type=str, help='Experiment name.')
-    #parser.add_argument('--experiment_definition', default='ptbxl_lstm', type=str, help='Experiment definition.')
-    parser.add_argument('--experiment_definition', default='ptbxl_lstm_shared', type=str, help='Experiment definition.')
-    parser.add_argument('--experiment_tag', default='cifar10-setup-1', type=str, help='Experiment name.')
-    #parser.add_argument('--experiment_definition', default='cifar10_simple', type=str, help='Experiment definition.')
+    parser.add_argument('--experiment_tag', default='densenet-1', type=str, help='Experiment name.')
+    parser.add_argument('--experiment_definition', default='xray_densenet', type=str, help='Experiment definition.')
     parser.add_argument('--master_seed', default=42, type=int, help='Master seed.')
     parser.add_argument('--num_seeds', default=1, type=int, help='Number of seeds.')
     parser.add_argument('--n_workers', default=1, type=int, help='Number of workers.')
-    parser.add_argument('--method', default='DyHPO', type=str, help='HPO algorithm.')
+    parser.add_argument('--method', default='HyperTune', type=str, help='HPO algorithm.')
 
     args = parser.parse_args()
 

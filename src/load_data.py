@@ -1,3 +1,12 @@
+"""
+Code responsible data loading and data augmentation.
+Creates datasets and dataloaders for all datasets.
+
+Datasets: CIFAR10, SVHN, Kaggle_PPG, PTB-XL, ChestX-ray14
+
+Note: PTB-XL shared is a special case of PTB-XL, where the data is stored
+in a shared memory for faster initialization.
+"""
 from pathlib import Path
 import torch
 import torch.utils

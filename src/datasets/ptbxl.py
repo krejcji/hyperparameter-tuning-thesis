@@ -1,3 +1,5 @@
+# The dataset PTB-XL source: https://physionet.org/content/ptb-xl/1.0.3/
+# License for the files: Creative Commons Attribution 4.0 International Public License
 from pathlib import Path
 import os
 

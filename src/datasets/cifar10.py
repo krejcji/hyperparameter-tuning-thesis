@@ -1,3 +1,4 @@
+# Dataset CIFAR-10 source: https://www.cs.toronto.edu/~kriz/cifar.html
 import os
 from pathlib import Path
 

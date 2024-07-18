@@ -1,3 +1,5 @@
+# The dataset PTB-XL source: https://physionet.org/content/ptb-xl/1.0.3/
+# License for the files: Creative Commons Attribution 4.0 International Public License
 from pathlib import Path
 import os
 import multiprocessing
@@ -18,7 +20,7 @@ def load_dataset(path, train, random_samples=False):
 
     return X, y
 
-def create_shared_memory(self, path, train, random_samples=False):
+def create_shared_memory(self, path, id, random_samples=False):
     X_train, y_train = load_dataset(path, True, random_samples)
     X_test, y_test = load_dataset(path, False, random_samples)
 
@@ -28,7 +30,7 @@ def create_shared_memory(self, path, train, random_samples=False):
               'y_test': y_test}
 
     for arr_name in arrays.keys():
-        name = arr_name
+        name = f'{arr_name}_{id}'
         array = arrays[arr_name]
         shm_arr = multiprocessing.shared_memory.SharedMemory(create=True, size=array.nbytes, name=name)
         shared = np.ndarray(array.shape, dtype=array.dtype, buffer=shm_arr.buf)
@@ -39,23 +41,24 @@ def create_shared_memory(self, path, train, random_samples=False):
         shm_arr = None
 
 class PTBXLDatasetShared(Dataset):
-    def __init__(self, dir, train=True, transform=None, seq_length=256, create=False):
+    def __init__(self, dir, train=True, transform=None, seq_length=256, create=False, id=0):
         train_size = 19230
         test_size = 2158
         self.transform = transform
         self.seq_length = seq_length
         self.create = create
+        self.unique_id = id
 
         # Create should be called before the training to allocate shared memory and hold references
         if create:
             if train:
-                create_shared_memory(self, dir, train)
+                create_shared_memory(self, dir, id)
             self.X = np.zeros((1,1,1))
             self.y = np.zeros((1,1))
         else:
             if train:
-                mem_X_train = multiprocessing.shared_memory.SharedMemory(name='X_train')
-                mem_y_train = multiprocessing.shared_memory.SharedMemory(name='y_train')
+                mem_X_train = multiprocessing.shared_memory.SharedMemory(name=f'X_train_{id}')
+                mem_y_train = multiprocessing.shared_memory.SharedMemory(name=f'y_train_{id}')
                 if os.name == 'posix':
                     # Needed to avoid deleting the shared memory prematurely on posix
                     resource_tracker.unregister(mem_X_train._name, 'shared_memory')
@@ -65,8 +68,8 @@ class PTBXLDatasetShared(Dataset):
                 self.buf_x = mem_X_train
                 self.buf_y = mem_y_train
             else:
-                mem_X_test = multiprocessing.shared_memory.SharedMemory(name='X_test')
-                mem_y_test = multiprocessing.shared_memory.SharedMemory(name='y_test')
+                mem_X_test = multiprocessing.shared_memory.SharedMemory(name=f'X_test_{id}')
+                mem_y_test = multiprocessing.shared_memory.SharedMemory(name=f'y_test_{id}')
                 print(f"Mem: {mem_X_test.name}")
                 if os.name == 'posix':
                     resource_tracker.unregister(mem_X_test._name, 'shared_memory')
@@ -95,7 +98,7 @@ class PTBXLDatasetShared(Dataset):
         else:
             print("Unlinking shared memory")
             for name in ['X_train', 'y_train', 'X_test', 'y_test']:
-                mem = multiprocessing.shared_memory.SharedMemory(name=name)
+                mem = multiprocessing.shared_memory.SharedMemory(name=f'{name}_{self.unique_id}')
                 mem.unlink()
 
 if __name__== "__main__":

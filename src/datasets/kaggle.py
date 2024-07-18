@@ -1,3 +1,4 @@
+# The dataset source: https://www.kaggle.com/datasets/mkachuee/BloodPressureDataset/data
 import os
 from pathlib import Path
 import itertools
@@ -12,7 +13,7 @@ import scipy.io as sio
 from torch.utils.data import Dataset
 import torch
 
-SEQ_LENGTH = 256
+SEQ_LENGTH = 625
 
 def process_file_old(data, num_sequences, seq_length):
     """
@@ -115,7 +116,7 @@ def process_file(data, seq_length):
     ppg = []
 
     for i in range(data.shape[0]):
-        if get_sqi(data[i][0][:2500]) < 99:
+        if get_sqi(data[i][0][:2500]) < 99.5:
             continue
         samples = min(data[i][1].shape[0]-seq_length+1, 10000)
         ppg.append(data[i][0][:samples+seq_length].astype(np.single))
@@ -132,7 +133,7 @@ def process_file(data, seq_length):
 
     return ppg, sbp, dbp
 
-def store_processed_data(dir, seq_length, files, train_val_split=0.9):
+def store_processed_data(dir, seq_length, files, train_val_split=0.9, normalize=True):
     """
     Serialize the data using pickle.
     """
@@ -158,6 +159,22 @@ def store_processed_data(dir, seq_length, files, train_val_split=0.9):
     dataset_len = len(ppg)
     split_on = int(dataset_len * train_val_split)
 
+    # Calculate normalization just from the training data.
+    if normalize:
+        sys_sample = np.array([sys[i][0] for i in range(split_on)])
+        dia_sample = np.array([dia[i][0] for i in range(split_on)])
+
+        sys_mean = sys_sample.mean()
+        sys_std = sys_sample.std()
+        dia_mean = dia_sample.mean()
+        dia_std = dia_sample.std()
+
+        for i in range(len(sys)):
+            sys_tmp = sys[i]
+            dia_tmp = dia[i]
+            sys[i] = (sys_tmp - sys_mean) / sys_std
+            dia[i] = (dia_tmp - dia_mean) / dia_std
+
     ppg_train = ppg[:split_on]
     bps_train =  [sys[:split_on], dia[:split_on]]
 
@@ -165,8 +182,18 @@ def store_processed_data(dir, seq_length, files, train_val_split=0.9):
     bps_val = [sys[split_on:], dia[split_on:]]
     # print(f'Dataset loaded, Train: {train}, PPG_shape: {ppg.shape}, bps_shape: {bps.shape}')
 
+
+
+
     if not os.path.exists(dir / "serialized"):
         os.makedirs(dir / "serialized")
+
+    if normalize:
+        with open(dir / "serialized" / "normalization.txt", "w") as f:
+            f.write("sys_mean: " + str(sys_mean) + "\n")
+            f.write("sys_std: " + str(sys_std) + "\n")
+            f.write("dia_mean: " + str(dia_mean) + "\n")
+            f.write("dia_std: " + str(dia_std) + "\n")
 
     with open(dir / "serialized" / "bps_train", "wb") as f:
         pickle.dump(bps_train, f)
@@ -191,6 +218,7 @@ def load_kaggle(path, train):
             ppg = pickle.load(f)
 
     return ppg, bps
+
 
 class KaggleDataset(Dataset):
     def __init__(self, dir, train=True, size=SEQ_LENGTH, transform=None):
